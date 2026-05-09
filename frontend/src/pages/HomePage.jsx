@@ -47,9 +47,9 @@ const HomePage = () => {
           {featuredProducts.length > 0 ? (
             <FeaturedProducts featuredProducts={featuredProducts} />
           ) : (
-            <div className="w-full flex gap-2 h-80 overflow-x-auto">
+            <div className="max-w-7xl mx-auto flex gap-2 h-80 overflow-x-auto">
               {Array.from({ length: 6 }).map((_, index) => (
-                <div className="w-[180px] flex-shrink-0" key={index}>
+                <div className="w-[180px] md:w-[220px] flex-shrink-0" key={index}>
                   <SkeletonLoader />
                 </div>
               ))}
