@@ -71,11 +71,12 @@ export const useUserStore = create((set, get) => ({
 
     try {
       const response = await axios.post("/auth/refresh-token");
-      set({ isRefreshing: false });
       return response.data;
     } catch (error) {
-      set({ user: null, isRefreshing: false });
+      set({ user: null });
       throw error;
+    } finally {
+      set({ isRefreshing: false });
     }
   },
 }));

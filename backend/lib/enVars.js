@@ -5,6 +5,7 @@ dotenv.config();
 const envars = {
   mongo_uri: process.env.MONGO_URI,
   port: process.env.PORT,
+  client_url: process.env.CLIENT_URL,
 
   cloudinary_cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   cloudinary_api_key: process.env.CLOUDINARY_API_KEY,

@@ -3,6 +3,7 @@ import CategoryItem from "../components/CategoryItem";
 import FeaturedProducts from "../components/FeaturedProducts";
 import { useProductStore } from "../stores/useProductStore";
 import AutoCarousel from "../components/AutoCarousel";
+import SkeletonLoader from "../components/SkeletonLoader";
 
 const HomePage = () => {
   const {
@@ -42,9 +43,19 @@ const HomePage = () => {
         </section>
 
         {/* Featured Products */}
-        {!isFetchingFeaturedProducts && featuredProducts.length > 0 && (
-          <FeaturedProducts featuredProducts={featuredProducts} />
-        )}
+        <section>
+          {featuredProducts.length > 0 ? (
+            <FeaturedProducts featuredProducts={featuredProducts} />
+          ) : (
+            <div className="w-full flex gap-2 h-80 overflow-x-auto">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div className="w-[180px] flex-shrink-0" key={index}>
+                  <SkeletonLoader />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

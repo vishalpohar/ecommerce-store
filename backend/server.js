@@ -1,4 +1,5 @@
 import express from "express";
+import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
@@ -19,11 +20,12 @@ const PORT = envars.port || 5000;
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: envars.client_url,
     credentials: true,
   }),
 );
 
+app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 

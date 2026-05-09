@@ -140,7 +140,7 @@ export const getRecommendedProducts = async (req, res) => {
 
 export const getSearchedProducts = async (req, res) => {
   try {
-    const { query, sort, page = 1, limit = 10 } = req.query;
+    const { query = "", sort, page = 1, limit = 10 } = req.query;
 
     const sortOption =
       sort === "price-low"
@@ -265,7 +265,7 @@ export const getMyOrders = async (req, res) => {
 };
 
 export const getProductsByCategory = async (req, res) => {
-  const { category, sort, page = 1, limit = 10 } = req.query;
+  const { category = "", sort, page = 1, limit = 10 } = req.query;
 
   let sortOption = {};
 

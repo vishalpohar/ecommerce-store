@@ -41,10 +41,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    getCartItems();
-  }, []);
-
-  if (checkingAuth) return <LoadingSpinner />;
+    if (user) {
+      getCartItems()
+    }
+  }, [user]);
 
   const PageLoader = () => (
     <div className="flex justify-center items-center">
