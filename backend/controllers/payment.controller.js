@@ -67,8 +67,6 @@ export const createCheckoutSession = async (req, res) => {
       },
     });
 
-    console.log(session.metadata.products);
-
     if (totalAmount / 100 >= 3000) {
       await createNewCoupon(req.user._id);
     }
