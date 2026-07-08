@@ -11,7 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCartStore } from "../stores/useCartStore";
-import axios from "../lib/axios";
+import axios from "../api/axios";
 import Confetti from "react-confetti";
 import { formatPriceInRupees } from "../utils/formatCurrency";
 
@@ -85,7 +85,7 @@ const PurchaseSuccessPage = () => {
           <Link
             to="/"
             className="inline-flex items-center gap-1 px-6 py-3 text-gray-700 hover:underline rounded-lg transition-colors font-medium">
-              <ArrowLeft size={20} />
+            <ArrowLeft size={20} />
             Return to Home
           </Link>
         </div>
