@@ -1,12 +1,10 @@
-import axios from "./axios.js";
-import { useUserStore } from "../stores/useUserStore.js";
+import { useUserStore } from "../stores/useUserStore";
 
 let refreshPromise = null;
 
-export const setupInterceptors = () => {
+export const setupAuthInterceptors = (axios) => {
   axios.interceptors.response.use(
     (response) => response,
-
     async (error) => {
       const originalRequest = error.config;
 
@@ -16,23 +14,23 @@ export const setupInterceptors = () => {
         !originalRequest.url.includes("/refresh-token")
       ) {
         originalRequest._retry = true;
-
         const { refreshToken, logout } = useUserStore.getState();
 
+        if (!refreshPromise) {
+          refreshPromise = refreshToken()
+            .catch((err) => {
+              logout();
+              return Promise.reject(err);
+            })
+            .finally(() => {
+              refreshPromise = null;
+            });
+        }
+
         try {
-          if (refreshPromise) {
-            await refreshPromise;
-            return axios(originalRequest);
-          }
-
-          refreshPromise = refreshToken();
           await refreshPromise;
-          refreshPromise = null;
-
           return axios(originalRequest);
         } catch (err) {
-          refreshPromise = null;
-          logout();
           return Promise.reject(err);
         }
       }

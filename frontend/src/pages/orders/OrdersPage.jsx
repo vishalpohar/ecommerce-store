@@ -37,9 +37,7 @@ const OrdersPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-            Your Orders
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-700 mb-2">Your Orders</h1>
           <p className="text-gray-600">Track and manage your orders</p>
         </div>
 

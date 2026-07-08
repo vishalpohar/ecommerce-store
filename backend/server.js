@@ -1,4 +1,5 @@
 import express from "express";
+import "dotenv/config";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -13,14 +14,16 @@ import analyticsRoutes from "./routes/analytics.route.js";
 import aiRoutes from "./routes/ai.route.js";
 
 import { connectDB } from "./lib/db.js";
-import envars from "./lib/enVars.js";
+import errorMiddleware from "./middlewares/error.middleware.js";
+import { globalLimiter } from "./middlewares/rateLimiter.js";
+import logger from "./utils/logger.js";
 
 const app = express();
-const PORT = envars.port || 5000;
+const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: envars.client_url,
+    origin: process.env.CLIENT_URL,
     credentials: true,
   }),
 );
@@ -28,6 +31,7 @@ app.use(
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
+app.use(globalLimiter);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -38,7 +42,26 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/ai", aiRoutes);
 
-app.listen(PORT, () => {
-  console.log("Server is running on http://localhost:" + PORT);
-  connectDB();
+app.use("*", (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
 });
+
+app.use(errorMiddleware);
+
+async function server() {
+  try {
+    await connectDB();
+
+    app.listen(PORT, () => {
+      logger.info(`Server started at http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    logger.error(error);
+    process.exit(1);
+  }
+}
+
+server();

@@ -1,4 +1,4 @@
-import { ArrowRight, Eye, Handbag, Heart } from "lucide-react";
+import { ArrowRight, Eye, Handbag, Heart, Plus, Star } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
@@ -34,8 +34,15 @@ const ProductCard = ({ product, inCart = false, inWishlist = false }) => {
     }
   };
 
+  const actualPrice = Math.round(product.price + product.price * 0.2);
+
+  const hash = parseInt(product._id.slice(-6), 16);
+
+  const rating = (4 + (hash % 11) / 10).toFixed(1);
+  const reviewCount = 50 + (hash % 151);
+
   return (
-    <div className="relative group bg-white shadow-sm border border-gray-100 hover:shadow-2xl hover:-translate-y-4 transition-all duration-500">
+    <div className="relative group bg-white shadow-sm border border-gray-100 md:hover:shadow-2xl md:hover:-translate-y-4 transition-all duration-500">
       <div className="animate-fadeSlideUp">
         {/* Product Image */}
         <Link
@@ -65,16 +72,6 @@ const ProductCard = ({ product, inCart = false, inWishlist = false }) => {
               />
             </button>
           </div>
-
-          {/* In Cart Badge */}
-          {inCart && (
-            <div className="absolute top-4 left-4">
-              <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-                <div className="w-2 h-2 bg-white rounded-full" />
-                In Bag
-              </div>
-            </div>
-          )}
         </Link>
 
         {/* Product Info */}
@@ -85,37 +82,46 @@ const ProductCard = ({ product, inCart = false, inWishlist = false }) => {
             <h3 className="text-sm lg:text-base font-semibold text-gray-900 line-clamp-2 transition-colors duration-300 leading-tight">
               {product.name}
             </h3>
+            <div className="flex items-center gap-1 mt-1">
+              <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+              <span className="text-sm font-medium text-gray-600">
+                {rating} ({reviewCount})
+              </span>
+            </div>
           </Link>
 
-          <div className="flex items-center justify-between py-2">
-            <span className="text-lg lg:text-2xl font-bold text-gray-900">
-              {formatPriceInRupees(product.price)}
-            </span>
-          </div>
+          <div className="flex items-center justify-between pb-2 mt-2">
+            <div className="flex items-center gap-2">
+              <p className="text-base lg:text-xl font-bold text-gray-900">
+                {formatPriceInRupees(product.price)}
+              </p>
+              <p className="text-xs lg:text-base text-gray-500 line-through">
+                {formatPriceInRupees(actualPrice)}
+              </p>
+            </div>
 
-          {/* Action Button */}
-          <button
-            onClick={() =>
-              inCart ? navigate("/cart") : handleAddToCart(product)
-            }
-            aria-label="Bag"
-            className={`relative overflow-hidden w-full text-sm font-semibold py-2 px-2 transition-all duration-300 flex items-center justify-center shadow-sm group ${
-              inCart
-                ? "bg-blue-500 hover:bg-blue-600 text-white"
-                : "bg-gray-900 text-white"
-            }`}>
-            {inCart ? (
-              <div className="flex justify-center items-center">
-                <span className="text-[10px] md:text-xs">SEE BAG</span>
-                <ArrowRight className="ml-2" size={20} />
-              </div>
-            ) : (
-              <div className="flex justify-center items-center">
-                <Handbag className="mr-2" size={22} />
-                <span className="text-[10px] md:text-xs">ADD TO BAG</span>
-              </div>
-            )}
-          </button>
+            {/* Action Button */}
+            <button
+              onClick={() =>
+                inCart ? navigate("/cart") : handleAddToCart(product)
+              }
+              aria-label="Bag"
+              className={`relative overflow-hidden font-semibold transition-all duration-300 flex items-center justify-center shadow-sm group ${
+                inCart
+                  ? "text-blue-600"
+                  : "border border-gray-900 text-gray-900 rounded"
+              }`}>
+              {inCart ? (
+                <div className="flex justify-center items-center p-2">
+                  <Handbag className="w-5 h-5 md:w-7 md:h-7" />
+                </div>
+              ) : (
+                <div className="flex justify-center items-center p-1">
+                  <Plus className="w-3 h-3 md:w-5 md:h-5" />
+                </div>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

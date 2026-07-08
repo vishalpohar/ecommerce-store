@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Handbag, Plus, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
@@ -69,14 +69,23 @@ const FeaturedProducts = ({ featuredProducts }) => {
 
         {/* Products */}
         <div className="relative">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-2 h-80">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-2 h-[340px]">
             {visibleProducts.map((product) => {
               const inCart = isInCart(product._id);
+
+              const originalPrice = Math.round(
+                product.price + product.price * 0.2,
+              );
+
+              const hash = parseInt(product._id.slice(-6), 16);
+
+              const rating = (4 + (hash % 11) / 10).toFixed(1);
+              const reviewCount = 50 + (hash % 151);
 
               return (
                 <div
                   key={product._id}
-                  className="group bg-white shadow-sm hover:shadow-2xl border border-gray-100 overflow-hidden hover:-translate-y-4 transition-all duration-500">
+                  className="group bg-white shadow-sm md:hover:shadow-2xl border border-gray-100 overflow-hidden md:hover:-translate-y-4 transition-all duration-500">
                   <Link to={`/product-details/${product._id}`}>
                     <div className="relative overflow-hidden bg-gray-100">
                       <img
@@ -84,53 +93,56 @@ const FeaturedProducts = ({ featuredProducts }) => {
                         alt={product.name}
                         loading="lazy"
                         decoding="async"
-                        className="w-full h-32 object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-
-                      {inCart && (
-                        <div className="absolute top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-                          <div className="w-2 h-2 bg-white rounded-full" />
-                          In Bag
-                        </div>
-                      )}
                     </div>
                   </Link>
 
                   {/* Product Info */}
                   <div className="p-6">
                     <Link to={`/product-details/${product._id}`}>
-                      <h3 className="font-semibold text-gray-900 mb-3 line-clamp-2 transition-colors md:text-lg leading-tight">
+                      <p className="text-xs font-medium text-gray-500 mb-1">
+                        {product.category.toUpperCase()}
+                      </p>
+                      <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 transition-colors md:text-lg leading-tight">
                         {product.name}
                       </h3>
+                      <p className="inline-flex items-center text-sm text-gray-600 mb-2 line-clamp-2 gap-1">
+                        <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                        {rating} ({reviewCount})
+                      </p>
                     </Link>
 
-                    <div className="flex items-center justify-between mb-5">
-                      <span className="md:text-2xl font-bold text-gray-900">
-                        {formatPriceInRupees(product?.price)}
-                      </span>
-                    </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <p className="md:text-2xl font-bold text-gray-900">
+                          {formatPriceInRupees(product?.price)}
+                        </p>
+                        <p className="text-sm xl:text-lg text-gray-500 line-through">
+                          {formatPriceInRupees(originalPrice)}
+                        </p>
+                      </div>
 
-                    {/* Cart Button */}
-                    <button
-                      onClick={() =>
-                        inCart ? navigate("/cart") : handleAddToCart(product)
-                      }
-                      aria-label="Bag"
-                      className={`relative overflow-hidden w-full text-sm font-semibold py-2 px-2 
-                      transition-all duration-300 flex items-center justify-center shadow-sm group 
+                      {/* Cart Button */}
+                      <button
+                        onClick={() =>
+                          inCart ? navigate("/cart") : handleAddToCart(product)
+                        }
+                        aria-label="Bag"
+                        className={`hidden relative overflow-hidden text-sm font-semibold p-1 
+                      transition-all duration-300 md:flex items-center justify-center shadow-sm group 
                       ${
                         inCart
-                          ? "bg-blue-500 hover:bg-blue-600 text-white"
-                          : "bg-gray-900 text-white"
+                          ? "text-blue-600"
+                          : "border border-gray-900 text-gray-900 rounded"
                       }`}>
-                      {inCart ? (
-                        <p className="text-[10px] md:text-xs py-1">SEE BAG</p>
-                      ) : (
-                        <p className="text-[10px] md:text-xs py-1">
-                          ADD TO BAG
-                        </p>
-                      )}
-                    </button>
+                        {inCart ? (
+                          <Handbag className="w-5 h-5" />
+                        ) : (
+                          <Plus className="w-2 h-2" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

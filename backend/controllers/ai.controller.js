@@ -1,15 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
-import envars from "../lib/enVars.js";
+import ApiError from "../utils/ApiError.js";
 import { redis } from "../lib/redis.js";
+import logger from "../utils/logger.js";
 
-const ai = new GoogleGenAI({ apiKey: envars.gemini_api_key });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-export const generateDescription = async (req, res) => {
+export const generateDescription = async (req, res, next) => {
   try {
     const { productName } = req.body;
 
     if (!productName || !productName.trim()) {
-      return res.status(400).json({ error: "Product name is required" });
+      return next(new ApiError(400, "Product name is required"));
     }
 
     const normalizedName = productName.trim().toLowerCase();
@@ -19,11 +20,10 @@ export const generateDescription = async (req, res) => {
       const cached = await redis.get(cacheKey);
 
       if (cached) {
-        console.log("response from Redis");
         return res.json({ description: cached });
       }
     } catch (error) {
-      console.log("Redis read error: ", error.message);
+      logger.error(`Redis read error: ${error.message}`);
     }
 
     const prompt = `
@@ -48,31 +48,25 @@ export const generateDescription = async (req, res) => {
         contents: prompt,
       });
 
-      console.log("response from AI");
-
       description = response.text.trim();
     } catch (aiError) {
-      console.error("AI error:", aiError.message);
-      return res.status(503).json({
-        error: "AI service unavailable. Please try again later.",
-      });
+      return next(
+        new ApiError(503, "AI service unavailable. Please try again later."),
+      );
     }
 
     if (!description) {
-      return res.status(500).json({
-        error: "Failed to generate description. Please try again.",
-      });
+      return next(new ApiError(500, "Failed to generate description"));
     }
 
     try {
       await redis.set(cacheKey, description, "EX", 86400);
     } catch (error) {
-      console.error("Redis write error:", error.message);
+      logger.error(`Redis write error: ${error.message}`);
     }
 
     res.json({ description });
   } catch (error) {
-    console.error("Controller error:", error.message);
-    res.status(500).json({ error: "Failed to generate description" });
+    return next(error);
   }
 };

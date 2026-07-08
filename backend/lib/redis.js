@@ -1,13 +1,13 @@
 import Redis from "ioredis";
-import envars from "./enVars.js";
+import logger from "../utils/logger.js";
 
-export const redis = new Redis(envars.upstash_redis_url, {
-  password: envars.upstash_redis_token,
+export const redis = new Redis(process.env.UPSTASH_REDIS_URL, {
+  password: process.env.UPSTASH_REDIS_TOKEN,
   tls: {},
 });
 
 redis.on("connect", () => {
-  console.log("Redis connected");
+  logger.info("Redis connected");
 });
 
 redis.on("error", (err) => {

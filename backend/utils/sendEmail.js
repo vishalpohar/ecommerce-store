@@ -1,7 +1,9 @@
 import nodemailer from "nodemailer";
-import envars from "../lib/enVars.js";
 
-export const sendOTPEmail = async (email="gmyidea675@gmail.com", otp=552314) => {
+export const sendOTPEmail = async (
+  email = "gmyidea675@gmail.com",
+  otp = 552314,
+) => {
   console.log("EMAIL_USER:", envars.email_user);
   console.log("EMAIL_PASS exists:", !!envars.email_pass);
   const transporter = nodemailer.createTransport({
@@ -9,8 +11,8 @@ export const sendOTPEmail = async (email="gmyidea675@gmail.com", otp=552314) => 
     port: 587,
     secure: false,
     auth: {
-      user: envars.email_user,
-      pass: envars.email_pass,
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
     },
   });
 

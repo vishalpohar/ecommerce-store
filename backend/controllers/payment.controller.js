@@ -2,12 +2,12 @@ import Coupon from "../models/coupon.model.js";
 import Order from "../models/order.model.js";
 import { stripe } from "../lib/stripe.js";
 
-export const createCheckoutSession = async (req, res) => {
+export const createCheckoutSession = async (req, res, next) => {
   try {
     const { products, couponCode } = req.body;
 
     if (!Array.isArray(products) || products.length === 0) {
-      return res.status(400).json({ error: "Invalid or empty products array" });
+      return next(new ApiError(400, "Invalid or empty products array"));
     }
 
     let totalAmount = 0;
@@ -73,20 +73,17 @@ export const createCheckoutSession = async (req, res) => {
 
     res.status(200).json({ id: session.id, totalAmount: totalAmount / 100 });
   } catch (error) {
-    console.error("Error processing checkout:", error);
-    res
-      .status(500)
-      .json({ message: "Error processing checkout:", error: error.message });
+    return next(error);
   }
 };
 
-export const checkoutSuccess = async (req, res) => {
+export const checkoutSuccess = async (req, res, next) => {
   try {
     const { sessionId } = req.body;
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     if (session.payment_status !== "paid") {
-      return res.status(400).json({ message: "Payment not completed" });
+      return next(new ApiError(400, "Payment not completed"));
     }
 
     const products = JSON.parse(session.metadata.products);
@@ -126,11 +123,7 @@ export const checkoutSuccess = async (req, res) => {
       totalAmount: session.amount_total / 100,
     });
   } catch (error) {
-    console.error("Error processing successful checkout:", error);
-    res.status(500).json({
-      message: "Error processing successful checkout",
-      error: error.message,
-    });
+    return next(error);
   }
 };
 

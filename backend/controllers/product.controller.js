@@ -3,8 +3,9 @@ import cloudinary from "../lib/cloudinary.js";
 import { redis } from "../lib/redis.js";
 import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
+import logger from "../utils/logger.js";
 
-export const getSellerProducts = async (req, res) => {
+export const getSellerProducts = async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.query;
 
@@ -15,35 +16,30 @@ export const getSellerProducts = async (req, res) => {
         createdAt: -1,
       })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     res.json({ products, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    console.log("Error in getAllProducts controller", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return next(error);
   }
 };
 
-export const getProductById = async (req, res) => {
+export const getProductById = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id).lean();
 
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      return next(new ApiError(404, "Product not found"));
     }
 
     res.json({ product });
   } catch (error) {
-    console.log("Error in getProductById controller", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return next(error);
   }
 };
 
-export const createProduct = async (req, res) => {
+export const createProduct = async (req, res, next) => {
   try {
     const { name, description, price, image, category } = req.body;
 
@@ -65,32 +61,29 @@ export const createProduct = async (req, res) => {
         ? cloudinaryResponse.secure_url
         : "",
       category,
+      seller: req.user._id,
     });
 
     res.status(201).json({ product });
   } catch (error) {
-    console.log("Error in createProduct controller", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return next(error);
   }
 };
 
-export const deleteProduct = async (req, res) => {
+export const deleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      return next(new ApiError(404, "Prouct not found"));
     }
 
     if (product.image) {
       const publicId = product.image.split("/").pop().split(".")[0];
       try {
         await cloudinary.uploader.destroy(`products/${publicId}`);
-        console.log("deleted image from cloudinary");
       } catch (error) {
-        console.log("error deleting image from cloudinary", error.message);
+        logger.error(`Error deleting image from cloudinary: ${error.message}`);
       }
     }
 
@@ -101,19 +94,16 @@ export const deleteProduct = async (req, res) => {
     let featuredProducts = await Product.find({ isFeatured: true }).lean();
 
     if (!featuredProducts) {
-      return res.status(404).json({ message: "No featured products found" });
+      return next(new ApiError(404, "No featured products found"));
     }
 
     await redis.set("featured_products", JSON.stringify(featuredProducts));
   } catch (error) {
-    console.log("Error in deleteProduct controller", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return next(error);
   }
 };
 
-export const getRecommendedProducts = async (req, res) => {
+export const getRecommendedProducts = async (req, res, next) => {
   try {
     const products = await Product.aggregate([
       {
@@ -131,14 +121,11 @@ export const getRecommendedProducts = async (req, res) => {
 
     res.json(products);
   } catch (error) {
-    console.log("Error in getRecommendedProducts controller", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return next(error);
   }
 };
 
-export const getSearchedProducts = async (req, res) => {
+export const getSearchedProducts = async (req, res, next) => {
   try {
     const { query = "", sort, page = 1, limit = 10 } = req.query;
 
@@ -166,20 +153,18 @@ export const getSearchedProducts = async (req, res) => {
     })
       .sort(sortOption)
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     res
       .status(200)
       .json({ searchResult, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    console.log("Error in getSearchedProducts controller", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return next(error);
   }
 };
 
-export const getMyOrders = async (req, res) => {
+export const getMyOrders = async (req, res, next) => {
   try {
     const user = req.user;
 
@@ -259,12 +244,11 @@ export const getMyOrders = async (req, res) => {
       orders,
     });
   } catch (error) {
-    console.log("Error in getMyOrders controller", error.message);
-    res.status(500).json({ success: false, message: error.message });
+    return next(error);
   }
 };
 
-export const getProductsByCategory = async (req, res) => {
+export const getProductsByCategory = async (req, res, next) => {
   const { category = "", sort, page = 1, limit = 10 } = req.query;
 
   let sortOption = {};
@@ -280,20 +264,18 @@ export const getProductsByCategory = async (req, res) => {
     )
       .sort(sortOption)
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const total = await Product.countDocuments({ category });
 
     res.json({ products, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    console.log("Error in getProductsByCategory controller", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return next(error);
   }
 };
 
-export const getFeaturedProducts = async (req, res) => {
+export const getFeaturedProducts = async (req, res, next) => {
   try {
     let featuredProducts = await redis.get("featured_products");
     if (featuredProducts) {
@@ -303,11 +285,11 @@ export const getFeaturedProducts = async (req, res) => {
     // if not in redis, fetch from mongodb
     featuredProducts = await Product.find(
       { isFeatured: true },
-      { _id: 1, name: 1, image: 1, price: 1, isFeatured: 1 },
+      { _id: 1, name: 1, image: 1, price: 1, isFeatured: 1, category: 1 },
     ).lean();
 
     if (!featuredProducts) {
-      return res.status(404).json({ message: "No featured products found" });
+      return next(new ApiError(404, "No featured products found"));
     }
 
     // store in redis for future quick access
@@ -317,18 +299,15 @@ export const getFeaturedProducts = async (req, res) => {
 
     res.json(featuredProducts);
   } catch (error) {
-    console.log("Error in getFeaturedProducts controller", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return next(error);
   }
 };
 
-export const toggleFeaturedProduct = async (req, res) => {
+export const toggleFeaturedProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid product ID" });
+      return next(new ApiError(400, "Invalid product ID"));
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -341,17 +320,14 @@ export const toggleFeaturedProduct = async (req, res) => {
     );
 
     if (!updatedProduct) {
-      return res.status(404).json({ message: "Product not found" });
+      return next(new ApiError(404, "Product not found"));
     }
 
     await updateFeaturedProductsCache();
 
     res.json(updatedProduct);
   } catch (error) {
-    console.log("Error in toggleFeaturedProduct controller", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return next(error);
   }
 };
 
@@ -360,6 +336,6 @@ async function updateFeaturedProductsCache() {
     const featuredProducts = await Product.find({ isFeatured: true }).lean();
     await redis.set("featured_products", JSON.stringify(featuredProducts));
   } catch (error) {
-    console.log("Error in updateFeaturedProductsCache function");
+    throw error;
   }
 }

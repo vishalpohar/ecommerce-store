@@ -2,68 +2,40 @@ import User from "../models/user.model.js";
 import { redis } from "../lib/redis.js";
 import jwt from "jsonwebtoken";
 import { sendOTPEmail } from "../utils/sendEmail.js";
+import {
+  generateTokens,
+  storeRefreshToken,
+  setCookies,
+} from "../utils/auth.utils.js";
+import ApiError from "../utils/ApiError.js";
 
-const generateTokens = (userId) => {
-  const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: "15m",
-  });
-
-  const refreshToken = jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET, {
-    expiresIn: "7d",
-  });
-
-  return { accessToken, refreshToken };
-};
-
-const storeRefreshToken = async (userId, refreshToken) => {
-  await redis.set(
-    `refresh_token:${userId}`,
-    refreshToken,
-    "EX",
-    7 * 24 * 60 * 60,
-  );
-};
-
-const isProd = process.env.NODE_ENV === "production";
-
-const setCookies = (res, accessToken, refreshToken) => {
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true, // prevent XSS attacks, cross-site scripting attack
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax", // prevents CSRF attack, cross-site request forgery attack
-    maxAge: 15 * 60 * 1000,
-  });
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true, // prevent XSS attacks, cross-site scripting attack
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax", // prevents CSRF attack, cross-site request forgery attack
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-};
-
-export const signup = async (req, res) => {
+export const signup = async (req, res, next) => {
   const { name, email, password, role } = req.body;
   try {
     const userExists = await User.findOne({ email });
 
-    if (userExists)
-      return res.status(400).json({ message: "User already exists" });
+    if (userExists) return next(new ApiError(400, "User already exists"));
 
     const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const STRONG_PASSWORD_PATTERN =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
     if (!EMAIL_PATTERN.test(email)) {
-      return res.status(400).json({
-        error: "Please enter a valid email address (e.g., user@example.com).",
-      });
+      return next(
+        new ApiError(
+          400,
+          "Please enter a valid email address (e.g., user@example.com).",
+        ),
+      );
     }
 
     if (!STRONG_PASSWORD_PATTERN.test(password)) {
-      return res.status(400).json({
-        error:
+      return next(
+        new ApiError(
+          400,
           "Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.",
-      });
+        ),
+      );
     }
 
     const user = await User.create({ name, email, password, role });
@@ -84,12 +56,11 @@ export const signup = async (req, res) => {
       message: "You have signed up successfully.",
     });
   } catch (error) {
-    console.log("Error in signup controller", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    return next(error);
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
@@ -107,15 +78,14 @@ export const login = async (req, res) => {
         role: user.role,
       });
     } else {
-      res.status(400).json({ message: "Invalid email or password" });
+      return next(new ApiError(400, "Invalid email or password"));
     }
   } catch (error) {
-    console.log("Error in login controller", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    return next(error);
   }
 };
 
-export const logout = async (req, res) => {
+export const logout = async (req, res, next) => {
   try {
     const refreshToken = req.cookies.refreshToken;
     if (refreshToken) {
@@ -130,24 +100,23 @@ export const logout = async (req, res) => {
     res.clearCookie("refreshToken");
     res.json({ message: "Logged out successfully" });
   } catch (error) {
-    console.log("Error in logout controller", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    return next(error);
   }
 };
 
-export const refreshToken = async (req, res) => {
+export const refreshToken = async (req, res, next) => {
   try {
     const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
-      return res.status(400).json({ message: "No refresh token provided" });
+      return next(new ApiError(400, "No refresh token provided"));
     }
 
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
     const storedToken = await redis.get(`refresh_token:${decoded.userId}`);
 
     if (storedToken !== refreshToken) {
-      return res.status(400).json({ message: "Invalid refresh token" });
+      return next(new ApiError(400, "Invalid refresh token"));
     }
 
     const accessToken = jwt.sign(
@@ -167,12 +136,11 @@ export const refreshToken = async (req, res) => {
 
     res.json({ success: true, message: "Token refresh successfully" });
   } catch (error) {
-    console.log("Error in refreshToken controller", error.message);
-    res.status(500).json({ message: "Internal server error" });
+    return next(error);
   }
 };
 
-export const getProfile = async (req, res) => {
+export const getProfile = async (req, res, next) => {
   try {
     let user = req.user;
     user = {
@@ -183,12 +151,11 @@ export const getProfile = async (req, res) => {
     };
     res.json(user);
   } catch (error) {
-    console.error("getProfile error:", err);
-    res.status(500).json({ message: "Internal server error" });
+    return next(error);
   }
 };
 
-export const sendOTP = async (req, res) => {
+export const sendOTP = async (req, res, next) => {
   try {
     const { email } = req.body;
 
@@ -196,10 +163,12 @@ export const sendOTP = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (user.otp && user.otpExpires > Date.now())
-      return res.status(400).json({
-        message:
+      return next(
+        new ApiError(
+          400,
           "Verification code already sent. Please wait before requesting again",
-      });
+        ),
+      );
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -211,30 +180,25 @@ export const sendOTP = async (req, res) => {
     try {
       await sendOTPEmail(email, otp);
     } catch (emailErr) {
-      console.error("Email failed:", emailErr);
-
-      return res.status(500).json({
-        message: "OTP generated but email failed. Try again later.",
-      });
+      return next(
+        new ApiError(400, "OTP generated but email failed. Try again later."),
+      );
     }
 
     res.json({ message: "Verification code sent successfully" });
   } catch (err) {
-    console.error("sendOTP error:", err);
-    return res.status(500).json({
-      message: "Internal server error",
-    });
+    return next(error);
   }
 };
 
-export const resetPassword = async (req, res) => {
+export const resetPassword = async (req, res, next) => {
   try {
     const { email, otp, newPassword } = req.body;
 
     const user = await User.findOne({ email });
 
     if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+      return next(new ApiError(400, "Invalid or expired OTP"));
     }
 
     user.password = newPassword;
@@ -244,9 +208,8 @@ export const resetPassword = async (req, res) => {
 
     await user.save();
 
-    res.json({ message: "Password reset successful" });
+    return res.json({ message: "Password reset successful" });
   } catch (err) {
-    console.error("resetPassword error:", err);
-    res.status(500).json({ message: "Internal server error" });
+    return next(error);
   }
 };

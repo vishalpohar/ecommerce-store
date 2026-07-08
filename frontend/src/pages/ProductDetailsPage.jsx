@@ -9,7 +9,7 @@ import {
   Star,
   Handbag,
 } from "lucide-react";
-import axios from "../lib/axios";
+import axios from "../api/axios";
 import { stripePromise } from "../lib/stripe";
 import { useNavigate } from "react-router-dom";
 import { useProductStore } from "../stores/useProductStore";
@@ -103,6 +103,13 @@ const ProductDetailsPage = () => {
     }
   }, [productId]);
 
+  const originalPrice = Math.round(product?.price + product?.price * 0.2);
+
+  const hash = parseInt(product?._id.slice(-6), 16);
+
+  const rating = Math.floor(4 + (hash % 11) / 10).toFixed(1);
+  const reviewCount = 50 + (hash % 151);
+
   if (isFetchingProduct) return <ThreeDotsLoader height="80" />;
 
   return (
@@ -195,7 +202,7 @@ const ProductDetailsPage = () => {
               {/* Product Details */}
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-xl lg:text-3xl font-bold text-gray-900 mb-4">
+                  <h1 className="text-xl lg:text-3xl font-bold text-gray-900 mb-2">
                     {displayName(product.name)}
                     {product.name.length > 100 && (
                       <button
@@ -208,20 +215,11 @@ const ProductDetailsPage = () => {
                   </h1>
 
                   {/* Rating */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`w-5 h-5 ${
-                            star <= 4
-                              ? "text-yellow-400 fill-current"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-gray-600">(128 reviews)</span>
+                  <div className="flex items-center gap-1 mb-1">
+                    <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+                    <span className="text-base text-gray-600">
+                      {rating} ({reviewCount} reviews)
+                    </span>
                   </div>
 
                   {/* Price */}
@@ -230,7 +228,7 @@ const ProductDetailsPage = () => {
                       {formatPriceInRupees(product.price)}
                     </span>
                     <span className="text-lg text-gray-500 line-through">
-                      {formatPriceInRupees(product.price * 1.2)}
+                      {formatPriceInRupees(originalPrice)}
                     </span>
                     <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">
                       20% OFF

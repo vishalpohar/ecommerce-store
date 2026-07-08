@@ -20,7 +20,7 @@ const AdminPage = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="mb-4">
-            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-700">
               Seller Dashboard
             </h1>
             <p className="text-gray-600 text-sm md:text-base mt-2">

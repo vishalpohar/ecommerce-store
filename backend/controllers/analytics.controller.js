@@ -1,95 +1,29 @@
-import mongoose from "mongoose";
-import Order from "../models/order.model.js";
-import Product from "../models/product.model.js";
+import {
+  getAnalyticsData,
+  getDailySalesData,
+} from "../utils/analytics.utils.js";
 
-export const getAnalyticsData = async (sellerId) => {
-  const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
-  const totalProducts = await Product.countDocuments({
-    seller: sellerObjectId,
-  });
-
-  const salesData = await Order.aggregate([
-    { $unwind: "$products" },
-
-    {
-      $match: { "products.seller": sellerObjectId },
-    },
-
-    {
-      $group: {
-        _id: null, // it groups all documents together
-        totalSales: { $sum: "$products.quantity" },
-        totalRevenue: {
-          $sum: "$products.itemTotal",
-        },
-      },
-    },
-  ]);
-
-  const { totalSales, totalRevenue } = salesData[0] || {
-    totalSales: 0,
-    totalRevenue: 0,
-  };
-
-  return {
-    products: totalProducts,
-    totalSales,
-    totalRevenue,
-  };
-};
-
-export const getDailySalesData = async (sellerId, startDate, endDate) => {
+export const getStats = async (req, res, next) => {
   try {
-    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
-    const dailySalesData = await Order.aggregate([
-      {
-        $match: {
-          createdAt: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
-      },
+    const sellerId = req.user._id;
+    const analyticsData = await getAnalyticsData(sellerId);
+    const duration = parseInt(req.query.range.replace("d", ""));
+    const timeRange = duration * 24 * 60 * 60 * 1000;
 
-      { $unwind: "$products" },
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - timeRange);
 
-      { $match: { "products.seller": sellerObjectId } },
+    const dailySalesData = await getDailySalesData(
+      sellerId,
+      startDate,
+      endDate,
+    );
 
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          sales: { $sum: "$products.quantity" },
-          revenue: { $sum: "$products.itemTotal" },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-
-    const dateArray = getDatesInRange(startDate, endDate);
-
-    return dateArray.map((date) => {
-      const foundData = dailySalesData.find((item) => item._id === date);
-
-      return {
-        date,
-        sales: foundData?.sales || 0,
-        revenue: foundData?.revenue || 0,
-      };
+    res.json({
+      analyticsData,
+      dailySalesData,
     });
   } catch (error) {
-    throw error;
+    return next(error);
   }
 };
-
-function getDatesInRange(startDate, endDate) {
-  const dates = [];
-  let currentDate = new Date(startDate);
-
-  while (currentDate <= endDate) {
-    const dateString = currentDate.toISOString().split("T")[0];
-    dates.push(dateString);
-    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-  }
-
-  return dates;
-}

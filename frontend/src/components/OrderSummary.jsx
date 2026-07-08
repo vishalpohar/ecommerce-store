@@ -2,7 +2,7 @@ import { useCartStore } from "../stores/useCartStore";
 import { ArrowRight, Shield, Truck, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { stripePromise } from "../lib/stripe";
-import axios from "../lib/axios";
+import axios from "../api/axios";
 import { formatPriceInRupees } from "../utils/formatCurrency";
 
 const OrderSummary = () => {

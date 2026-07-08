@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "../../lib/axios";
+import axios from "../../api/axios";
 import toast from "react-hot-toast";
 import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -40,7 +40,6 @@ const ForgotPassword = () => {
       startTimer();
       toast.success(response.data.message || "OTP sent successfully");
     } catch (error) {
-      console.log(error);
       toast.error(error.response?.data?.message || "Failed to resend OTP");
     } finally {
       setLoading(false);

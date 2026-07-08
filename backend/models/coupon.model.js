@@ -33,7 +33,6 @@ const couponSchema = new mongoose.Schema(
 
 couponSchema.index({ expirationDate: 1 });
 couponSchema.index({ isActive: 1 });
-couponSchema.index({ userId: 1, isActive: 1 });
 
 const Coupon = mongoose.model("Coupon", couponSchema);
 

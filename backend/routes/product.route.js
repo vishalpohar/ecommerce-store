@@ -11,7 +11,7 @@ import {
   getSearchedProducts,
   toggleFeaturedProduct,
 } from "../controllers/product.controller.js";
-import { sellerRoute, protectRoute } from "../middleware/auth.middleware.js";
+import { sellerRoute, protectRoute } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 

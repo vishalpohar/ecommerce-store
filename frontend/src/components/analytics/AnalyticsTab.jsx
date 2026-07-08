@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import axios from "../../lib/axios";
+import axios from "../../api/axios";
 import { Package, ShoppingCart, BarChart3, IndianRupee } from "lucide-react";
 import {
   LineChart,
