@@ -137,9 +137,9 @@ const FeaturedProducts = ({ featuredProducts }) => {
                           : "border border-gray-900 text-gray-900 rounded"
                       }`}>
                         {inCart ? (
-                          <Handbag className="w-5 h-5" />
+                          <Handbag className="w-6 h-6" />
                         ) : (
-                          <Plus className="w-2 h-2" />
+                          <Plus className="w-4 h-4" />
                         )}
                       </button>
                     </div>
