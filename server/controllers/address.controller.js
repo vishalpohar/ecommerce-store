@@ -4,15 +4,8 @@ import ApiError from "../utils/ApiError.js";
 export const addAddress = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const {
-      fullName,
-      phone,
-      addressLine,
-      city,
-      state,
-      postalCode,
-      country,
-    } = req.body;
+    const { fullName, phone, addressLine, city, state, postalCode, country } =
+      req.body;
     if (
       !fullName?.trim() ||
       !phone?.trim() ||
@@ -69,8 +62,10 @@ export const getAddress = async (req, res, next) => {
 
 export const deleteAddress = async (req, res, next) => {
   try {
-    const deleteAddress = await Address.findOneAndDelete({ user: req.user._id });
-    
+    const deleteAddress = await Address.findOneAndDelete({
+      user: req.user._id,
+    });
+
     if (!deleteAddress) {
       return next(new ApiError(404, "Address not found"));
     }

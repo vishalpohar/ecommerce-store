@@ -226,81 +226,108 @@ const Navbar = () => {
         />
       )}
 
-      {/* Mobile Menu */}
-      {isMobileMenu && (
-        <div className="fixed flex flex-col bg-white top-16 right-0 z-40 w-full h-full py-4">
-          <div className="w-full flex flex-col items-center mt-24">
-            {user && (
-              <>
-                <div className="flex items-center w-[150px] space-x-3 pb-3">
-                  <UserRound
-                    className="text-gray-600 group-hover:text-blue-600"
-                    size={20}
-                  />
-                  <span className="text-lg font-light text-gray-700">
-                    {user.name.charAt(0).toUpperCase() + user.name.slice(1)}
-                  </span>
-                </div>
+      {/* Mobile Menu Backdrop */}
+      <div
+        aria-hidden="true"
+        onClick={toggleMobileMenu}
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-xs transition-opacity duration-300 lg:hidden ${
+          isMobileMenu
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+        }`}
+      />
 
-                <ul className="w-full flex flex-col pb-4">
-                  {navLinks.map((link) => {
-                    if (link.sellerOnly && !isSeller) return null;
-
-                    const Icon = link.icon;
-
-                    return (
-                      <li key={link.id} className="w-full">
-                        <NavLink
-                          to={link.path}
-                          aria-label={`Open ${link.name}`}
-                          onClick={toggleMobileMenu}
-                          className={({ isActive }) =>
-                            `flex justify-center p-3 transition-colors duration-200 group ${isActive && "bg-blue-50"}`
-                          }>
-                          {({ isActive }) => (
-                            <div className="w-[150px] flex items-center gap-3">
-                              <Icon
-                                size={20}
-                                className={
-                                  isActive ? "text-blue-700" : "text-gray-600"
-                                }
-                              />
-                              <span
-                                className={`text-lg font-light ${isActive ? "text-blue-600 font-semibold" : "text-gray-600"}`}>
-                                {link.name}{" "}
-                                {link.showCount &&
-                                  cart.length > 0 &&
-                                  `(${cart.length})`}
-                              </span>
-                            </div>
-                          )}
-                        </NavLink>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </>
-            )}
-
-            <hr className="w-full border-t border-gray-400 pb-4" />
-
-            {user && (
-              <button
-                aria-label="Logout"
-                onClick={() => {
-                  logout();
-                  toggleMobileMenu();
-                }}
-                className="flex items-center gap-2 w-[150px] rounded-lg text-red-600 group-hover:text-red-700 transition-colors duration-200 group">
-                <LogOut size={20} />
-                <span className="text-lg font-light group-hover:font-semibold">
-                  Log Out
-                </span>
-              </button>
-            )}
+      {/* Mobile Menu Drawer */}
+      <div
+        aria-hidden={!isMobileMenu}
+        className={`fixed inset-y-0 right-0 z-50 flex flex-col bg-white w-[85%] max-w-sm py-4 shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden ${
+          isMobileMenu ? "translate-x-0" : "translate-x-full"
+        }`}>
+        <div className="w-full flex flex-col mt-2">
+          <div className="flex justify-end pr-4">
+            <button
+              type="button"
+              className="p-2 transition-colors duration-200"
+              aria-label="Close"
+              onClick={toggleMobileMenu}>
+              <X size={22} />
+            </button>
           </div>
+
+          {user && (
+            <>
+              <div className="flex items-center space-x-3 px-6 py-2">
+                <UserRound className="text-gray-600" size={20} />
+                <span className="text-lg font-light text-gray-700">
+                  {getDisplayName(user.name)}
+                </span>
+              </div>
+
+              <ul className="w-full flex flex-col pb-4">
+                {navLinks.map((link) => {
+                  if (link.sellerOnly && !isSeller) return null;
+
+                  const Icon = link.icon;
+
+                  return (
+                    <li key={link.id} className="w-full">
+                      <NavLink
+                        to={link.path}
+                        aria-label={`Open ${link.name}`}
+                        onClick={toggleMobileMenu}
+                        className={({ isActive }) =>
+                          `flex transition-colors duration-200 px-6 py-2.5 group ${
+                            isActive ? "bg-gray-200" : "hover:bg-gray-50"
+                          }`
+                        }>
+                        {({ isActive }) => (
+                          <div className="flex items-center gap-3">
+                            <Icon
+                              size={20}
+                              className={
+                                isActive ? "text-gray-900" : "text-gray-600"
+                              }
+                            />
+                            <span
+                              className={`text-lg font-light ${
+                                isActive
+                                  ? "text-gray-900 font-semibold"
+                                  : "text-gray-600"
+                              }`}>
+                              {link.name}{" "}
+                              {link.showCount &&
+                                cart.length > 0 &&
+                                `(${cart.length})`}
+                            </span>
+                          </div>
+                        )}
+                      </NavLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+
+          <hr className="w-full border-t border-gray-200 my-2" />
+
+          {user && (
+            <button
+              type="button"
+              aria-label="Logout"
+              onClick={() => {
+                logout();
+                toggleMobileMenu();
+              }}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-red-600 hover:text-red-700 transition-colors duration-200 group">
+              <LogOut size={20} />
+              <span className="text-lg font-light group-hover:font-semibold">
+                Log Out
+              </span>
+            </button>
+          )}
         </div>
-      )}
+      </div>
     </header>
   );
 };
