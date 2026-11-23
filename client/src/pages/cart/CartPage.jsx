@@ -31,7 +31,7 @@ const CartPage = () => {
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-8">
           {/* Cart Items */}
           <div className="flex-1">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -53,7 +53,7 @@ const CartPage = () => {
           </div>
 
           {/* Sidebar - No animation needed */}
-          <div className="lg:w-96 space-y-6">
+          <div className="lg:sticky lg:top-28 lg:w-96 space-y-6">
             <OrderSummary handleCheckout={handleCheckout} />
           </div>
         </div>

@@ -93,7 +93,7 @@ const Navbar = () => {
       {/* Main Navbar */}
       <nav className="px-2 md:px-6 mx-3 lg:mx-6 bg-black/5 text-gray-600 backdrop-blur-md rounded-full">
         <div className="container mx-auto">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 px-2 lg:p-0">
             {/* Logo */}
             <div>
               <Link
@@ -105,7 +105,7 @@ const Navbar = () => {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-4 md:space-x-6 lg:space-x-10 px-2">
+            <div className="hidden lg:flex items-center space-x-4 md:space-x-6 lg:space-x-10 px-2 lg:p-0">
               {user && (
                 <ul className="flex items-center gap-6 lg:gap-10">
                   {navLinks.map((link) => {
@@ -133,13 +133,13 @@ const Navbar = () => {
               )}
             </div>
 
-            <div className="flex ">
+            <div className="flex items-center gap-1">
               {/* Search Button */}
               <button
                 onClick={() => setShowSearch(true)}
                 aria-label="Open Search"
-                className="p-2 hover:text-gray-900 transition-colors hover:scale-110 duration-200">
-                <Search size={20} />
+                className="hover:text-gray-900 transition-colors hover:scale-110 duration-200">
+                <Search className="w-4 h-4 lg:w-5 lg:h-5" />
               </button>
 
               <div className="hidden lg:flex justify-center items-center">
@@ -176,8 +176,8 @@ const Navbar = () => {
                   <Link
                     to="/login"
                     aria-label="Login"
-                    className="px-4 py-2 hover:text-blue-600 hover:scale-105 transition-all duration-200">
-                    <span className="text-lg font-light">Login</span>
+                    className="px-3 hover:text-gray-900 rounded-full hover:scale-105 transition-all duration-200">
+                    <span className="lg:text-xl">Login</span>
                   </Link>
                 )}
               </div>
@@ -185,26 +185,19 @@ const Navbar = () => {
               {/* Mobile Menu Button */}
               <div className="flex lg:hidden items-center space-x-3">
                 {user ? (
-                  !isMobileMenu ? (
+                  !isMobileMenu && (
                     <button
                       onClick={toggleMobileMenu}
                       aria-label="Open Menu"
                       className="p-2 hover:text-blue-600 transition-colors duration-200">
                       <Menu size={22} />
                     </button>
-                  ) : (
-                    <button
-                      className="p-2 hover:text-blue-600 transition-colors duration-200"
-                      aria-label="Close"
-                      onClick={toggleMobileMenu}>
-                      <X size={22} />
-                    </button>
                   )
                 ) : (
                   <Link
                     to="/login"
                     aria-label="Login"
-                    className="px-4 py-2 hover:text-blue-600 hover:scale-105 transition-all duration-200">
+                    className="px-2 py-2 hover:text-blue-600 hover:scale-105 transition-all duration-200">
                     <span className="text-lg font-light">Login</span>
                   </Link>
                 )}

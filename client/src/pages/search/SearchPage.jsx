@@ -8,6 +8,13 @@ import ProductCard from "../../components/ProductCard";
 import SkeletonLoader from "../../components/SkeletonLoader";
 import EmptySearchPage from "./EmptySearchPage";
 import { ThreeDotsLoader } from "../../components/LoadingSpinner";
+import SortDropdown from "../../components/ui/SortDropdown";
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest First" },
+  { value: "price-low", label: "Price: Low to High" },
+  { value: "price-high", label: "Price: High to Low" },
+];
 
 const SearchPage = () => {
   const { search } = useLocation();
@@ -73,18 +80,11 @@ const SearchPage = () => {
               <p className="text-gray-700 text-sm md:text-xl font-semibold font-serif">
                 Search Results
               </p>
-              <div className="relative flex flex-row appearance-none text-gray-700 text-sm md:text-base bg-white border border-gray-300 outline-none rounded-lg px-4 py-2 transition-all duration-200">
-                <p>Sort: </p>
-                <select
-                  className="bg-transparent outline-none"
-                  value={sortBy}
-                  name="sort"
-                  onChange={(e) => setSortBy(e.target.value)}>
-                  <option value="newest">Newest First</option>
-                  <option value="price-low">Price Low to High</option>
-                  <option value="price-high">Price High to Low</option>
-                </select>
-              </div>
+              <SortDropdown
+                options={SORT_OPTIONS}
+                value={sortBy}
+                onChange={setSortBy}
+              />
             </div>
           )}
         </div>

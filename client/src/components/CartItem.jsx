@@ -30,7 +30,7 @@ const CartItem = ({ item }) => {
           {/* Product Details */}
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-blue-600 transition-colors">
-              {item.name}
+              {`${item.name.slice(0, 40)}${item.name.length > 40 && "..." }`}
             </h3>
 
             <div className="space-y-2 mb-4">

@@ -75,7 +75,7 @@ const AddProductForm = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 transform transition-all duration-500">
+    <div className="bg-white rounded-2xl shadow-sm p-1 lg:p-4 transform transition-all duration-500">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-semibold text-gray-900">
           Add New Product

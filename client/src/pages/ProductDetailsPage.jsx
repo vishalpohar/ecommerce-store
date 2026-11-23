@@ -42,8 +42,8 @@ const ProductDetailsPage = () => {
   const displayText = (description) => {
     return isExpanded
       ? description
-      : description.length > 150
-        ? description.substring(0, 150) + "..."
+      : description.length > 100
+        ? description.substring(0, 100) + "..."
         : description;
   };
 
@@ -110,7 +110,7 @@ const ProductDetailsPage = () => {
       <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
         {product /* Breadcrumb */ && (
           <nav className="flex mb-4" aria-label="Breadcrumb">
-            <ol className="flex items-center space-x-2 text-sm text-gray-600 pl-2">
+            <ol className="flex items-center space-x-2 text-[10px] lg:text-xs text-gray-600 pl-2">
               <li>
                 <a href="/" className="hover:text-blue-600 transition-colors">
                   Home

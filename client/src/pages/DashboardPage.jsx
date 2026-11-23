@@ -89,7 +89,7 @@ const SellerDashboard = () => {
           {/* Right Main Workspace */}
           <main className="flex-1 w-full min-w-0">
             {/* Mobile / Tablet Pill Navigation (avoids clashing with Navbar's menu) */}
-            <div className="flex items-center gap-3 px-1 pb-4 mb-3 border-b border-gray-100">
+            <div className="flex lg:hidden items-center gap-3 px-1 pb-4 mb-3 border-b border-gray-100">
               <div>
                 <h2 className="font-bold text-gray-700 leading-tight">
                   Seller Dashboard

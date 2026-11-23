@@ -15,6 +15,7 @@ import addressRoutes from "./routes/address.route.js";
 import aiRoutes from "./routes/ai.route.js";
 
 import { connectDB } from "./lib/db.js";
+import { connectRedis } from "./lib/redis.js";
 import errorMiddleware from "./middlewares/error.middleware.js";
 import { globalLimiter } from "./middlewares/rateLimiter.js";
 import logger from "./utils/logger.js";
@@ -54,8 +55,16 @@ app.use("*", (req, res) => {
 app.use(errorMiddleware);
 
 async function server() {
+  const start = performance.now();
+
   try {
-    await connectDB();
+    await Promise.all([connectDB(), connectRedis()]);
+
+    logger.info(
+      `Database connections initialized in ${(
+        performance.now() - start
+      ).toFixed(2)}ms`,
+    );
 
     app.listen(PORT, () => {
       logger.info(`Server started at http://localhost:${PORT}`);

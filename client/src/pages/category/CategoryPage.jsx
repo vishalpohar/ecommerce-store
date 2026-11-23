@@ -9,6 +9,14 @@ import { useProductStore } from "../../stores/useProductStore";
 import { useCartStore } from "../../stores/useCartStore";
 import EmptyCategoryPage from "./EmptyCategoryPage";
 
+import SortDropdown from "../../components/ui/SortDropdown";
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest First" },
+  { value: "price-low", label: "Price: Low to High" },
+  { value: "price-high", label: "Price: High to Low" },
+];
+
 const CategoryPage = () => {
   const {
     fetchProductsByCategory,
@@ -28,6 +36,7 @@ const CategoryPage = () => {
   const isInitialLoading = isFetchingCategory && categoryProducts.length === 0;
 
   useEffect(() => {
+    setPage(1); 
     fetchProductsByCategory(category, sortBy, 1, false);
   }, [category, sortBy]);
 
@@ -63,29 +72,20 @@ const CategoryPage = () => {
   return (
     <div className="py-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header Section */}
 
-        <div className="mb-4">
-          {/* Controls */}
+        {/* Header Section */}
+        <div className="mb-6">
           {categoryProducts.length > 0 && (
-            <div className="flex flex-row justify-between items-center gap-1">
-              <div>
-                <span className="text-gray-700 text-sm md:text-xl font-semibold font-serif">
-                  {categoryName} Collection
-                </span>
-              </div>
-              <div className="relative flex flex-row appearance-none text-gray-700 text-sm md:text-base bg-white border border-gray-300 outline-none rounded-lg px-4 py-2 transition-all duration-200">
-                <p>Sort: </p>
-                <select
-                  className="bg-transparent outline-none"
-                  value={sortBy}
-                  name="sort"
-                  onChange={(e) => setSortBy(e.target.value)}>
-                  <option value="newest">Newest First</option>
-                  <option value="price-low">Price Low to High</option>
-                  <option value="price-high">Price High to Low</option>
-                </select>
-              </div>
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="text-gray-800 text-lg md:text-2xl font-semibold font-serif">
+                {categoryName} Collection
+              </h1>
+
+              <SortDropdown
+                options={SORT_OPTIONS}
+                value={sortBy}
+                onChange={setSortBy}
+              />
             </div>
           )}
         </div>
