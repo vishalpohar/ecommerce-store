@@ -1,19 +1,19 @@
 import {
-  LogOut,
-  Search,
-  Menu,
-  Package,
   Handbag,
   Heart,
-  UserRound,
   LayoutDashboard,
+  LogOut,
+  Menu,
+  Package,
+  Search,
+  UserRound,
   X,
 } from "lucide-react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useUserStore } from "../stores/useUserStore";
-import { useCartStore } from "../stores/useCartStore";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useCartStore } from "../stores/useCartStore";
+import { useUserStore } from "../stores/useUserStore";
 import SearchBar from "./SearchBar";
 
 const navLinks = [
@@ -45,6 +45,11 @@ const navLinks = [
   },
 ];
 
+const getDisplayName = (name) => {
+  if (!name) return "User";
+  return name.charAt(0).toUpperCase() + name.slice(1);
+};
+
 const Navbar = () => {
   const { user, logout } = useUserStore();
   const isSeller = user?.role === "seller";
@@ -56,22 +61,17 @@ const Navbar = () => {
   const searchRef = useRef(null);
   const navigate = useNavigate();
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenu((prev) => !prev);
-  };
-
-  const getDisplayName = (name) => {
-    if (!name) return "User";
-    return name.charAt(0).toUpperCase() + name.slice(1);
-  };
+  const toggleMobileMenu = () => setIsMobileMenu((prev) => !prev);
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && searchValue !== "") {
-      navigate(`/search?query=${encodeURIComponent(searchValue.trim())}`);
-      setShowSearch(false);
-      setSearchValue("");
-    } else if (e.key === "Enter" && searchValue.trim() === "") {
-      toast.error("Please enter a search term");
+    if (e.key === "Enter") {
+      if (searchValue.trim() !== "") {
+        navigate(`/search?query=${encodeURIComponent(searchValue.trim())}`);
+        setShowSearch(false);
+        setSearchValue("");
+      } else {
+        toast.error("Please enter a search term");
+      }
     }
   };
 
@@ -82,142 +82,143 @@ const Navbar = () => {
       }
     };
 
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setShowSearch(false);
+        setIsMobileMenu(false);
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, []);
 
   return (
-    <header className="fixed top-4 left-0 w-full z-50">
-      {/* Main Navbar */}
-      <nav className="px-2 md:px-6 mx-3 lg:mx-6 bg-black/5 text-gray-600 backdrop-blur-md rounded-full">
-        <div className="container mx-auto">
-          <div className="flex items-center justify-between h-16 px-2 lg:p-0">
-            {/* Logo */}
-            <div>
-              <Link
-                to="/"
-                aria-label="Website Logo"
-                className="relative flex items-center gap-3 text-gray-700 text-xl lg:text-3xl font-serif tracking-tight outline-none font-extrabold duration-500">
-                EasyBuy
-              </Link>
-            </div>
+    <header className="fixed top-4 left-0 w-full z-50 px-3 lg:px-6 pointer-events-none">
+      {/* Main Floating Pill Navbar */}
+      <nav
+        aria-label="Primary navigation"
+        className="pointer-events-auto max-w-7xl mx-auto px-4 md:px-6 bg-white/80 text-gray-700 backdrop-blur-md border border-gray-200/80 shadow-sm rounded-full">
+        <div className="flex items-center justify-between h-14 sm:h-16">
+          {/* Logo */}
+          <Link
+            to="/"
+            className="text-gray-900 text-xl lg:text-2xl font-serif tracking-tight font-extrabold hover:opacity-80 transition-opacity">
+            EasyBuy
+          </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-4 md:space-x-6 lg:space-x-10 px-2 lg:p-0">
-              {user && (
-                <ul className="flex items-center gap-6 lg:gap-10">
-                  {navLinks.map((link) => {
-                    if (link.sellerOnly && !isSeller) return null;
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex items-center">
+            {user && (
+              <ul className="flex items-center gap-8">
+                {navLinks.map((link) => {
+                  if (link.sellerOnly && !isSeller) return null;
 
-                    return (
-                      <li key={link.id}>
-                        <NavLink
-                          to={link.path}
-                          aria-label={`Open ${link.name}`}
-                          className={({ isActive }) =>
-                            `relative inline-block text-lg font-medium text-gray-500 transition-transform hover:scale-110 group ${isActive ? "text-blue-600 font-semibold border-blue-500 hover:text-blue-700" : "hover:text-gray-900"}`
-                          }>
-                          {link.name}
-                          {link.showCount && cart.length > 0 && (
-                            <p className="absolute -top-2 -right-4 bg-gray-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-medium group-hover:bg-gray-900">
-                              {cart.length}
-                            </p>
-                          )}
-                        </NavLink>
-                      </li>
-                    );
-                  })}
-                </ul>
+                  return (
+                    <li key={link.id}>
+                      <NavLink
+                        to={link.path}
+                        className={({ isActive }) =>
+                          `relative inline-flex items-center gap-1.5 text-sm font-medium transition-colors duration-200 ${
+                            isActive
+                              ? "text-blue-600 font-semibold"
+                              : "text-gray-600 hover:text-gray-900"
+                          }`
+                        }>
+                        {link.name}
+                        {link.showCount && cart.length > 0 && (
+                          <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[11px] font-semibold text-white bg-gray-900 rounded-full">
+                            {cart.length}
+                          </span>
+                        )}
+                      </NavLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Search Trigger */}
+            <button
+              type="button"
+              onClick={() => setShowSearch(true)}
+              aria-label="Open Search"
+              className="p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors duration-200">
+              <Search className="w-5 h-5" aria-hidden="true" />
+            </button>
+
+            {/* Desktop User Actions */}
+            <div className="hidden lg:flex items-center gap-2">
+              {user ? (
+                <>
+                  <div className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-gray-100/80 border border-gray-200/70">
+                    <div className="w-6 h-6 rounded-full bg-gray-900 text-white flex items-center justify-center">
+                      <UserRound className="w-3.5 h-3.5" aria-hidden="true" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-800">
+                      {getDisplayName(user.name)}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={logout}
+                    aria-label="Log out"
+                    className="relative group p-2 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors duration-200">
+                    <LogOut className="w-5 h-5" aria-hidden="true" />
+                    <span className="pointer-events-none absolute top-11 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2.5 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 whitespace-nowrap">
+                      Log out
+                    </span>
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/login"
+                  className="px-4 py-2 rounded-full bg-gray-900 text-white text-sm font-medium hover:bg-blue-600 transition-colors duration-200">
+                  Login
+                </Link>
               )}
             </div>
 
-            <div className="flex items-center gap-1">
-              {/* Search Button */}
-              <button
-                onClick={() => setShowSearch(true)}
-                aria-label="Open Search"
-                className="hover:text-gray-900 transition-colors hover:scale-110 duration-200">
-                <Search className="w-4 h-4 lg:w-5 lg:h-5" />
-              </button>
-
-              <div className="hidden lg:flex justify-center items-center">
-                {/* User Actions */}
-                {user ? (
-                  <div className="flex gap-1 justify-center items-center">
-                    <button
-                      onClick={logout}
-                      aria-label="Open Logout"
-                      className="relative group px-4 py-2 hover:text-gray-900 hover:scale-110 transition-all duration-200">
-                      <LogOut size={20} />
-                      <span
-                        className="
-                            absolute top-9 left-1/2 -translate-x-1/2
-                            bg-gray-900 text-white text-xs px-3 py-1 rounded-md
-                            opacity-0 scale-95
-                            group-hover:opacity-100 group-hover:scale-100
-                            transition-all duration-200
-                          ">
-                        logout
-                      </span>
-                    </button>
-                    <div className="flex items-center justify-center">
-                      <UserRound
-                        size={20}
-                        className="border-2 rounded-full border-gray-600"
-                      />
-                      <span className="text-lg">
-                        {getDisplayName(user.name)}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <Link
-                    to="/login"
-                    aria-label="Login"
-                    className="px-3 hover:text-gray-900 rounded-full hover:scale-105 transition-all duration-200">
-                    <span className="lg:text-xl">Login</span>
-                  </Link>
-                )}
-              </div>
-
-              {/* Mobile Menu Button */}
-              <div className="flex lg:hidden items-center space-x-3">
-                {user ? (
-                  !isMobileMenu && (
-                    <button
-                      onClick={toggleMobileMenu}
-                      aria-label="Open Menu"
-                      className="p-2 hover:text-blue-600 transition-colors duration-200">
-                      <Menu size={22} />
-                    </button>
-                  )
-                ) : (
-                  <Link
-                    to="/login"
-                    aria-label="Login"
-                    className="px-2 py-2 hover:text-blue-600 hover:scale-105 transition-all duration-200">
-                    <span className="text-lg font-light">Login</span>
-                  </Link>
-                )}
-              </div>
+            {/* Mobile Menu / Login Trigger */}
+            <div className="flex lg:hidden items-center">
+              {user ? (
+                <button
+                  type="button"
+                  onClick={toggleMobileMenu}
+                  aria-label="Open navigation menu"
+                  aria-expanded={isMobileMenu}
+                  className="p-2 rounded-full text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                  <Menu className="w-5 h-5" aria-hidden="true" />
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="px-3.5 py-1.5 rounded-full bg-gray-900 text-white text-xs sm:text-sm font-medium hover:bg-blue-600 transition-colors duration-200">
+                  Login
+                </Link>
+              )}
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Search Overlay */}
-      {showSearch && (
-        <SearchBar
-          searchRef={searchRef}
-          showSearch={showSearch}
-          searchValue={searchValue}
-          setSearchValue={setSearchValue}
-          setShowSearch={setShowSearch}
-          handleKeyDown={handleKeyDown}
-        />
-      )}
+      {/* Search Overlay (Always mounted so open/close transitions animate smoothly) */}
+      <SearchBar
+        searchRef={searchRef}
+        showSearch={showSearch}
+        searchValue={searchValue}
+        setSearchValue={setSearchValue}
+        setShowSearch={setShowSearch}
+        handleKeyDown={handleKeyDown}
+      />
 
       {/* Mobile Menu Backdrop */}
       <div
@@ -233,93 +234,89 @@ const Navbar = () => {
       {/* Mobile Menu Drawer */}
       <div
         aria-hidden={!isMobileMenu}
-        className={`fixed inset-y-0 right-0 z-50 flex flex-col bg-white w-[85%] max-w-sm py-4 shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden ${
-          isMobileMenu ? "translate-x-0" : "translate-x-full"
+        className={`pointer-events-auto fixed inset-y-0 right-0 z-50 flex flex-col bg-white w-[85%] max-w-sm shadow-2xl transition-all duration-300 ease-in-out lg:hidden ${
+          isMobileMenu ? "translate-x-0 visible" : "translate-x-full invisible"
         }`}>
-        <div className="w-full flex flex-col mt-2">
-          <div className="flex justify-end pr-4">
-            <button
-              type="button"
-              className="p-2 transition-colors duration-200"
-              aria-label="Close"
-              onClick={toggleMobileMenu}>
-              <X size={22} />
-            </button>
-          </div>
+        {/* Drawer Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <span className="font-serif font-extrabold text-xl text-gray-900">
+            EasyBuy
+          </span>
+          <button
+            type="button"
+            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+            aria-label="Close navigation menu"
+            onClick={toggleMobileMenu}>
+            <X className="w-5 h-5" aria-hidden="true" />
+          </button>
+        </div>
 
-          {user && (
-            <>
-              <div className="flex items-center space-x-3 px-6 py-2">
-                <UserRound className="text-gray-600" size={20} />
-                <span className="text-lg font-light text-gray-700">
-                  {getDisplayName(user.name)}
-                </span>
+        {/* Drawer Content */}
+        {user && (
+          <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto">
+            <div>
+              <div className="flex items-center gap-3 px-3 py-3 mb-3 rounded-xl bg-gray-50 border border-gray-100">
+                <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center shrink-0">
+                  <UserRound className="w-4 h-4" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500">Signed in as</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {getDisplayName(user.name)}
+                  </p>
+                </div>
               </div>
 
-              <ul className="w-full flex flex-col pb-4">
+              <ul className="space-y-1">
                 {navLinks.map((link) => {
                   if (link.sellerOnly && !isSeller) return null;
-
                   const Icon = link.icon;
 
                   return (
-                    <li key={link.id} className="w-full">
+                    <li key={link.id}>
                       <NavLink
                         to={link.path}
-                        aria-label={`Open ${link.name}`}
                         onClick={toggleMobileMenu}
                         className={({ isActive }) =>
-                          `flex transition-colors duration-200 px-6 py-2.5 group ${
-                            isActive ? "bg-gray-200" : "hover:bg-gray-50"
+                          `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 ${
+                            isActive
+                              ? "bg-blue-50 text-blue-700 font-semibold"
+                              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                           }`
                         }>
-                        {({ isActive }) => (
-                          <div className="flex items-center gap-3">
-                            <Icon
-                              size={20}
-                              className={
-                                isActive ? "text-gray-900" : "text-gray-600"
-                              }
-                            />
-                            <span
-                              className={`text-lg font-light ${
-                                isActive
-                                  ? "text-gray-900 font-semibold"
-                                  : "text-gray-600"
-                              }`}>
-                              {link.name}{" "}
-                              {link.showCount &&
-                                cart.length > 0 &&
-                                `(${cart.length})`}
-                            </span>
-                          </div>
+                        <span className="flex items-center gap-3">
+                          <Icon
+                            className="w-5 h-5 shrink-0"
+                            aria-hidden="true"
+                          />
+                          {link.name}
+                        </span>
+                        {link.showCount && cart.length > 0 && (
+                          <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-900 text-white">
+                            {cart.length}
+                          </span>
                         )}
                       </NavLink>
                     </li>
                   );
                 })}
               </ul>
-            </>
-          )}
+            </div>
 
-          <hr className="w-full border-t border-gray-200 my-2" />
-
-          {user && (
-            <button
-              type="button"
-              aria-label="Logout"
-              onClick={() => {
-                logout();
-                toggleMobileMenu();
-              }}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-red-600 hover:text-red-700 transition-colors duration-200 group">
-              <LogOut size={20} />
-              <span className="text-lg font-light group-hover:font-semibold">
+            <div className="pt-4 mt-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  toggleMobileMenu();
+                }}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-200">
+                <LogOut className="w-5 h-5" aria-hidden="true" />
                 Log Out
-              </span>
-            </button>
-          )}
-        </div>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

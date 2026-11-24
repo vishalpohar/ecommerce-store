@@ -1,4 +1,5 @@
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 const SearchBar = ({
   searchRef,
@@ -8,33 +9,74 @@ const SearchBar = ({
   setShowSearch,
   handleKeyDown,
 }) => {
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (showSearch) {
+      inputRef.current?.focus();
+    }
+  }, [showSearch]);
+
   return (
     <div
-      className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${showSearch ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search products"
+      aria-hidden={!showSearch}
+      className={`pointer-events-auto fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-20 sm:pt-28 p-4 transition-all duration-300 ${
+        showSearch
+          ? "opacity-100 visible"
+          : "opacity-0 invisible pointer-events-none"
+      }`}>
       <div
         ref={searchRef}
-        className={`bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 transform transition-all duration-300 ${showSearch ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}>
-        <div className="relative">
+        className={`bg-white rounded-2xl shadow-2xl border border-gray-200/80 w-full max-w-2xl p-4 sm:p-5 transform transition-all duration-300 ${
+          showSearch
+            ? "scale-100 translate-y-0 opacity-100"
+            : "scale-95 -translate-y-2 opacity-0"
+        }`}>
+        <div className="relative flex items-center">
           <Search
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+            className="absolute left-4 text-gray-400 pointer-events-none"
             size={20}
+            aria-hidden="true"
           />
           <input
+            ref={inputRef}
             type="search"
-            placeholder="Search for products, brands, and more..."
-            className="w-full pl-12 pr-4 py-4 text-lg text-gray-700 outline-none ring-2 focus:ring-blue-500 bg-gray-50 rounded-xl"
+            placeholder="Search for shirts, trousers, shoes..."
+            className="w-full pl-12 pr-10 py-3.5 text-base sm:text-lg text-gray-800 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            autoFocus
           />
+          {searchValue && (
+            <button
+              type="button"
+              onClick={() => setSearchValue("")}
+              aria-label="Clear search"
+              className="absolute right-3 p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200/70 transition-colors">
+              <X className="w-4 h-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
-        <div className="flex justify-between items-center mt-4">
-          <span className="text-sm text-gray-500">Press Enter to search</span>
+
+        <div className="flex justify-between items-center mt-3 px-1 text-xs text-gray-500">
+          <span>
+            Press{" "}
+            <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-700 font-sans">
+              Enter
+            </kbd>{" "}
+            to search or{" "}
+            <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-700 font-sans">
+              Esc
+            </kbd>{" "}
+            to close
+          </span>
           <button
+            type="button"
             onClick={() => setShowSearch(false)}
-            aria-label="Cancel"
-            className="text-sm text-gray-500 hover:text-gray-700">
+            className="font-medium text-gray-600 hover:text-gray-900 transition-colors">
             Cancel
           </button>
         </div>

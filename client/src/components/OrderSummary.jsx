@@ -1,80 +1,101 @@
-import { useCartStore } from "../stores/useCartStore";
-import { ArrowRight, Shield, Truck, Clock } from "lucide-react";
+import { ArrowRight, Clock, ShieldCheck, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useCartStore } from "../stores/useCartStore";
 import { formatPriceInRupees } from "../utils/formatCurrency";
+
+const TRUST_BADGES = [
+  { icon: Truck, label: "Free Shipping", color: "text-emerald-600 bg-emerald-50" },
+  { icon: ShieldCheck, label: "Secure Pay", color: "text-blue-600 bg-blue-50" },
+  { icon: Clock, label: "24/7 Support", color: "text-amber-600 bg-amber-50" },
+];
 
 const OrderSummary = ({ handleCheckout }) => {
   const { total, subtotal } = useCartStore();
 
   const savings = subtotal - total;
-  const formattedSubtotal = formatPriceInRupees(subtotal);
-  const formattedTotal = formatPriceInRupees(total);
-  const formattedSavings = formatPriceInRupees(savings);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 transition-all duration-500">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">
-        Order Summary
-      </h2>
-
-      {/* Pricing Breakdown */}
-      <div className="space-y-4 mb-6">
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600">Subtotal</span>
-          <span className="text-gray-900 font-medium">{formattedSubtotal}</span>
-        </div>
-
-        {savings > 0 && (
-          <div className="flex justify-between items-center">
-            <span className="text-green-600">Savings</span>
-            <span className="text-green-600 font-medium">
-              -{formattedSavings}
-            </span>
-          </div>
-        )}
-
-        <div className="border-t border-gray-200 pt-4">
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-semibold text-gray-900">Total</span>
-            <span className="text-2xl font-bold text-gray-900">
-              {formattedTotal}
-            </span>
-          </div>
-        </div>
+    <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
+      {/* Header */}
+      <div className="px-6 py-4 bg-gray-50/70 border-b border-gray-100">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+          Order Summary
+        </h2>
       </div>
 
-      {/* Trust Badges */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="text-center">
-          <Truck className="w-6 h-6 text-green-500 mx-auto mb-2" />
-          <p className="text-xs text-gray-600">Free Shipping</p>
-        </div>
-        <div className="text-center">
-          <Shield className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-          <p className="text-xs text-gray-600">Secure Checkout</p>
-        </div>
-        <div className="text-center">
-          <Clock className="w-6 h-6 text-orange-500 mx-auto mb-2" />
-          <p className="text-xs text-gray-600">24/7 Support</p>
-        </div>
-      </div>
+      <div className="p-6 space-y-6">
+        {/* Pricing Breakdown */}
+        <dl className="space-y-3 text-sm">
+          <div className="flex justify-between items-center">
+            <dt className="text-gray-500">Subtotal</dt>
+            <dd className="font-medium text-gray-900 tabular-nums">
+              {formatPriceInRupees(subtotal)}
+            </dd>
+          </div>
 
-      {/* Checkout Button */}
-      <button
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 ease-in-out mb-4"
-        aria-label="Proceed to Checkout"
-        onClick={handleCheckout}>
-        Proceed to Checkout
-      </button>
+          <div className="flex justify-between items-center">
+            <dt className="text-gray-500">Shipping</dt>
+            <dd className="font-medium text-emerald-600">Free</dd>
+          </div>
 
-      {/* Continue Shopping */}
-      <div className="text-center">
-        <Link
-          to="/"
-          className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
-          Continue Shopping
-          <ArrowRight className="ml-1 w-4 h-4" />
-        </Link>
+          {savings > 0 && (
+            <div className="flex justify-between items-center">
+              <dt className="text-emerald-600">Discount</dt>
+              <dd className="font-medium text-emerald-600 tabular-nums">
+                -{formatPriceInRupees(savings)}
+              </dd>
+            </div>
+          )}
+
+          <div className="pt-4 mt-2 border-t border-gray-100 flex justify-between items-baseline">
+            <dt className="text-base font-semibold text-gray-900">Total</dt>
+            <dd className="text-2xl font-bold text-gray-900 tabular-nums">
+              {formatPriceInRupees(total)}
+            </dd>
+          </div>
+        </dl>
+
+        {/* Checkout Button */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={handleCheckout}
+            className="group w-full inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-blue-600 text-white font-semibold py-3.5 px-6 rounded-xl shadow-xs hover:shadow-md transition-all duration-200"
+          >
+            <span>Proceed to Checkout</span>
+            <ArrowRight
+              className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1"
+              aria-hidden="true"
+            />
+          </button>
+
+          <div className="text-center">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1 text-xs sm:text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              <span>Continue Shopping</span>
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Trust Badges */}
+        <div className="grid grid-cols-3 gap-2 pt-5 border-t border-gray-100">
+          {TRUST_BADGES.map(({ icon: Icon, label, color }) => (
+            <div
+              key={label}
+              className="flex flex-col items-center text-center gap-1.5"
+            >
+              <div className={`p-2 rounded-xl ${color}`}>
+                <Icon className="w-4 h-4" aria-hidden="true" />
+              </div>
+              <span className="text-[11px] font-medium text-gray-500 leading-tight">
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

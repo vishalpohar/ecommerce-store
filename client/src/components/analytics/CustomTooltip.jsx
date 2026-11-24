@@ -1,33 +1,40 @@
-import formatDate from "../../utils/formatDate";
-
 const CustomTooltip = ({ active, payload, label, showSales }) => {
-  if (active && payload && payload.length) {
-    const sales = payload.find((p) => p.dataKey === "sales")?.value || 0;
-    const revenue = payload.find((p) => p.dataKey === "revenue")?.value || 0;
+  if (!active || !payload?.length) return null;
 
-    return (
-      <div
-        className="bg-white p-3 border border-gray-200 rounded-xl shadow-md"
-        style={{ minWidth: 140 }}>
-        <p className="text-sm font-semibold text-gray-800 mb-1">
-          {formatDate(label)}
-        </p>
+  const sales = payload.find((p) => p.dataKey === "sales")?.value || 0;
+  const revenue = payload.find((p) => p.dataKey === "revenue")?.value || 0;
+
+  return (
+    <div className="bg-white/95 backdrop-blur-xs p-3.5 border border-gray-200/80 rounded-xl shadow-lg min-w-[150px]">
+      <p className="text-xs font-semibold text-gray-900 pb-2 mb-2 border-b border-gray-100">
+        {label}
+      </p>
+
+      <div className="space-y-1.5 text-xs">
         {showSales && (
-          <p className="text-xs text-blue-600">
-            Sales: <span className="font-semibold text-gray-900">{sales}</span>
-          </p>
+          <div className="flex items-center justify-between gap-4">
+            <span className="inline-flex items-center gap-1.5 text-gray-500">
+              <span className="w-2 h-2 rounded-full bg-blue-600" />
+              Sales
+            </span>
+            <span className="font-semibold text-gray-900 tabular-nums">
+              {sales.toLocaleString("en-IN")}
+            </span>
+          </div>
         )}
-        <p className="text-xs text-green-600">
-          Revenue:{" "}
-          <span className="font-semibold text-gray-900">
-            ₹{revenue.toLocaleString()}
-          </span>
-        </p>
-      </div>
-    );
-  }
 
-  return null;
+        <div className="flex items-center justify-between gap-4">
+          <span className="inline-flex items-center gap-1.5 text-gray-500">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            Revenue
+          </span>
+          <span className="font-semibold text-gray-900 tabular-nums">
+            ₹{revenue.toLocaleString("en-IN")}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default CustomTooltip;

@@ -1,24 +1,28 @@
-import { useEffect, useRef, useState } from "react";
-import axios from "../../api/axios";
-import { Package, ShoppingCart, BarChart3, IndianRupee } from "lucide-react";
+import { IndianRupee, Package, ShoppingCart } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
-  LineChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
 } from "recharts";
-
+import axios from "../../api/axios";
+import formatDate from "../../utils/formatDate";
 import { ThreeDotsLoader } from "../LoadingSpinner";
 import AnalyticsCard from "./AnalyticsCard";
 import CustomTooltip from "./CustomTooltip";
 
-import formatDate from "../../utils/formatDate";
+const TIME_RANGES = [
+  { value: "7d", label: "7 Days" },
+  { value: "30d", label: "30 Days" },
+  { value: "90d", label: "90 Days" },
+];
 
 const AnalyticsTab = () => {
   const [analyticsData, setAnalyticsData] = useState({
@@ -28,17 +32,17 @@ const AnalyticsTab = () => {
   });
   const [dailySalesData, setDailySalesData] = useState([]);
   const [timeRange, setTimeRange] = useState("7d");
-  
-  const isFetchingAnalyticsData = useRef(false);
-  
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAnalyticsData = async () => {
-      if (isFetchingAnalyticsData.current) return;
+    let isCancelled = false;
 
-      isFetchingAnalyticsData.current = true;
+    const fetchAnalyticsData = async () => {
+      setIsLoading(true);
       try {
         const response = await axios.get(`/analytics?range=${timeRange}`);
+        if (isCancelled) return;
+
         setAnalyticsData(response.data.analyticsData);
         const formattedData = response.data.dailySalesData.map((item) => ({
           ...item,
@@ -46,161 +50,203 @@ const AnalyticsTab = () => {
         }));
         setDailySalesData(formattedData);
       } catch (error) {
-        console.error("Error fetching analytics data:", error);
+        if (!isCancelled) {
+          console.error("Error fetching analytics data:", error);
+        }
       } finally {
-        isFetchingAnalyticsData.current = false;
+        if (!isCancelled) setIsLoading(false);
       }
     };
 
     fetchAnalyticsData();
+    return () => {
+      isCancelled = true;
+    };
   }, [timeRange]);
 
   const analyticsCardData = [
     {
       id: "TOTAL_PRODUCTS",
       title: "Total Products",
-      value: analyticsData.products.toLocaleString(),
+      value: (analyticsData.products || 0).toLocaleString("en-IN"),
       icon: Package,
-      color: "gray",
+      color: "blue",
     },
     {
       id: "TOTAL_SALES",
       title: "Total Sales",
-      value: analyticsData.totalSales.toLocaleString(),
+      value: (analyticsData.totalSales || 0).toLocaleString("en-IN"),
       change: "+18.3%",
       icon: ShoppingCart,
-      color: "orange",
+      color: "amber",
     },
     {
       id: "TOTAL_REVENUE",
       title: "Total Revenue",
-      value: `₹${analyticsData.totalRevenue.toLocaleString()}`,
+      value: `₹${(analyticsData.totalRevenue || 0).toLocaleString("en-IN")}`,
       change: "+22.7%",
       icon: IndianRupee,
-      color: "green",
+      color: "emerald",
     },
   ];
 
-  if (isFetchingAnalyticsData.current) {
-    return <ThreeDotsLoader height="60" />;
-  }
-
   return (
-    <div className="min-h-[90vh] flex flex-col gap-6">
-      {/* Time Range Selector */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <BarChart3 className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
+    <div className="space-y-6">
+      {/* Top Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+            Store Overview
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500">
+            Sales velocity and revenue trends for the selected period.
+          </p>
+        </div>
+
+        {/* Segmented Time Range Selector */}
+        <div
+          role="group"
+          aria-label="Select analytics time range"
+          className="inline-flex self-start sm:self-auto p-1 rounded-xl bg-gray-100 border border-gray-200/80">
+          {TIME_RANGES.map(({ value, label }) => {
+            const isActive = timeRange === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTimeRange(value)}
+                aria-pressed={isActive}
+                className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? "bg-white text-gray-900 shadow-2xs"
+                    : "text-gray-500 hover:text-gray-800"
+                }`}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <ThreeDotsLoader height="45" />
+      ) : (
+        <>
+          {/* KPI Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+            {analyticsCardData.map((data) => (
+              <AnalyticsCard
+                key={data.id}
+                title={data.title}
+                value={data.value}
+                change={data.change}
+                icon={data.icon}
+                color={data.color}
+              />
+            ))}
           </div>
-          <div>
-            <h2 className="md:text-2xl font-semibold text-gray-900">
-              Analytics Dashboard
-            </h2>
-            <p className="text-gray-600 text-xs md:text-base">
-              Track your store performance
-            </p>
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Sales & Revenue Line Chart */}
+            <section
+              aria-label="Sales and revenue chart"
+              className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-5 sm:p-6">
+              <div className="mb-5">
+                <h3 className="text-base font-semibold text-gray-900">
+                  Sales &amp; Revenue
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Daily order volume vs. revenue generated
+                </p>
+              </div>
+
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart
+                  data={dailySalesData}
+                  margin={{ top: 5, right: 12, left: -10, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#9ca3af"
+                    tick={{ fill: "#6b7280", fontSize: 11 }}
+                    angle={-25}
+                    textAnchor="end"
+                  />
+                  <YAxis
+                    stroke="#9ca3af"
+                    tick={{ fill: "#6b7280", fontSize: 11 }}
+                  />
+                  <Tooltip content={<CustomTooltip showSales />} />
+                  <Legend
+                    verticalAlign="bottom"
+                    wrapperStyle={{ paddingTop: 20, fontSize: 12 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="sales"
+                    stroke="#2563eb"
+                    strokeWidth={2.5}
+                    dot={false}
+                    activeDot={{ r: 5, stroke: "#2563eb", strokeWidth: 2 }}
+                    name="Sales"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#10b981"
+                    strokeWidth={2.5}
+                    dot={false}
+                    activeDot={{ r: 5, stroke: "#10b981", strokeWidth: 2 }}
+                    name="Revenue (₹)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </section>
+
+            {/* Revenue Bar Chart */}
+            <section
+              aria-label="Revenue trend chart"
+              className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-5 sm:p-6">
+              <div className="mb-5">
+                <h3 className="text-base font-semibold text-gray-900">
+                  Revenue Trend
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Daily revenue breakdown in INR
+                </p>
+              </div>
+
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={dailySalesData}
+                  margin={{ top: 5, right: 12, left: -10, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#9ca3af"
+                    tick={{ fill: "#6b7280", fontSize: 11 }}
+                    angle={-25}
+                    textAnchor="end"
+                  />
+                  <YAxis
+                    stroke="#9ca3af"
+                    tick={{ fill: "#6b7280", fontSize: 11 }}
+                  />
+                  <Tooltip content={<CustomTooltip showSales={false} />} />
+                  <Bar
+                    dataKey="revenue"
+                    fill="#6366f1"
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={40}
+                    name="Revenue (₹)"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </section>
           </div>
-        </div>
-
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="px-4 py-2 border text-gray-700 text-xs md:text-base border-gray-300 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
-          <option value="90d">Last 90 days</option>
-        </select>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-        {analyticsCardData.map((data) => (
-          <AnalyticsCard
-            key={data.id}
-            title={data.title}
-            value={data.value}
-            change={data.change}
-            icon={data.icon}
-            color={data.color}
-          />
-        ))}
-      </div>
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Sales Chart */}
-        <div className="bg-white shadow-sm rounded-2xl border border-gray-300 p-6 transition-all duration-500">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Sales & Revenue
-          </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={dailySalesData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-              <XAxis
-                dataKey="date"
-                stroke="#6b7280"
-                angle={-25}
-                textAnchor="end"
-                fontSize={10}
-              />
-              <YAxis stroke="#6b7280" fontSize={12} />
-              <Tooltip content={<CustomTooltip showSales={true} />} />
-              <Legend
-                verticalAlign="bottom"
-                wrapperStyle={{ paddingTop: 20 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="sales"
-                stroke="#2563eb"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 6, stroke: "#3b82f6", strokeWidth: 2 }}
-                name="Sales"
-              />
-              <Line
-                type="monotone"
-                dataKey="revenue"
-                stroke="#16a34a"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 6, stroke: "#10b981", strokeWidth: 2 }}
-                name="Revenue (₹)"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Revenue Chart */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 transition-all duration-500">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Revenue Trend
-          </h3>
-          <ResponsiveContainer width="100%" height={300} paddingBottom={10}>
-            <BarChart
-              data={dailySalesData}
-              margin={{ top: 10, right: 30, left: 0, bottom: 40 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-              <XAxis
-                dataKey="date"
-                stroke="#6b7280"
-                angle={-25}
-                textAnchor="end"
-                fontSize={10}
-              />
-              <YAxis stroke="#6b7280" fontSize={12} />
-              <Tooltip content={<CustomTooltip showSales={false} />} />
-              <Bar
-                dataKey="revenue"
-                fill="#7c3aed"
-                radius={[4, 4, 0, 0]}
-                name="Revenue (₹)"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 };

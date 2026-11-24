@@ -1,29 +1,40 @@
 import {
+  ArrowLeft,
   ArrowRight,
-  CheckCircle,
+  CheckCircle2,
+  Clock,
+  Mail,
   Package,
   Truck,
-  Mail,
-  Clock,
   XCircle,
-  ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useCartStore } from "../stores/useCartStore";
-import axios from "../api/axios";
 import Confetti from "react-confetti";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "../api/axios";
+import { useCartStore } from "../stores/useCartStore";
 import { formatPriceInRupees } from "../utils/formatCurrency";
+
+const TIMELINE_STEPS = [
+  { title: "Order Confirmed", time: "Just now", active: true, done: true },
+  { title: "Processing", time: "Within 24 hrs", active: true, done: false },
+  { title: "Shipped", time: "1–2 business days", active: false, done: false },
+  { title: "Delivered", time: "3–5 business days", active: false, done: false },
+];
 
 const PurchaseSuccessPage = () => {
   const [isProcessing, setIsProcessing] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
-  const { clearCart } = useCartStore();
   const [error, setError] = useState(null);
+
+  const { clearCart } = useCartStore();
   const navigate = useNavigate();
 
   useEffect(() => {
+    let noticeTimer;
+    let redirectTimer;
+
     const handleCheckoutSuccess = async (sessionId) => {
       try {
         const response = await axios.post(
@@ -35,11 +46,13 @@ const PurchaseSuccessPage = () => {
         clearCart();
         setOrderDetails(response.data);
 
-        setTimeout(() => setIsRedirecting(true), 8000);
-        setTimeout(() => navigate("/"), 12000);
-      } catch (error) {
-        console.error("Checkout success error:", error);
-        setError("Failed to process order confirmation");
+        noticeTimer = setTimeout(() => setIsRedirecting(true), 8000);
+        redirectTimer = setTimeout(() => navigate("/"), 12000);
+      } catch (err) {
+        console.error("Checkout success error:", err);
+        setError(
+          "Failed to process order confirmation. Please check your orders page.",
+        );
       } finally {
         setIsProcessing(false);
       }
@@ -49,22 +62,34 @@ const PurchaseSuccessPage = () => {
       "session_id",
     );
 
-    if (sessionId) handleCheckoutSuccess(sessionId);
-    else {
-      setError("No session ID found in the URL");
+    if (sessionId) {
+      handleCheckoutSuccess(sessionId);
+    } else {
+      setError("No session ID found in the URL.");
       setIsProcessing(false);
     }
+
+    // Clear timers if user navigates away early
+    return () => {
+      clearTimeout(noticeTimer);
+      clearTimeout(redirectTimer);
+    };
   }, [clearCart, navigate]);
 
   if (isProcessing) {
     return (
-      <div className="min-h-[90vh] flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
+      <div
+        role="status"
+        aria-live="polite"
+        className="min-h-[85vh] bg-gradient-to-b from-gray-50/70 to-white flex items-center justify-center px-4">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Processing your order...
-          </h3>
-          <p className="text-gray-600 mt-2">Please wait a moment</p>
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+          <h1 className="text-lg font-serif font-bold text-gray-900">
+            Confirming your order...
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Please hold on while we verify your payment.
+          </p>
         </div>
       </div>
     );
@@ -72,20 +97,20 @@ const PurchaseSuccessPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-[90vh] flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <XCircle className="w-8 h-8 text-red-600" />
+      <div className="min-h-[85vh] bg-gradient-to-b from-gray-50/70 to-white flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-gray-200/80 shadow-xs p-8 text-center animate-fadeSlideUp">
+          <div className="w-14 h-14 bg-red-50 text-red-600 ring-1 ring-inset ring-red-600/15 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <XCircle className="w-7 h-7" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-serif font-bold text-gray-900 mb-2">
             Order Processing Error
           </h1>
-          <p className="text-gray-600 mb-6">{error}</p>
+          <p className="text-sm text-gray-500 mb-6">{error}</p>
 
           <Link
             to="/"
-            className="inline-flex items-center gap-1 px-6 py-3 text-gray-700 hover:underline rounded-lg transition-colors font-medium">
-            <ArrowLeft size={20} />
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 hover:bg-blue-600 text-white text-sm font-semibold transition-colors">
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
             Return to Home
           </Link>
         </div>
@@ -93,166 +118,182 @@ const PurchaseSuccessPage = () => {
     );
   }
 
+  const formattedOrderId = orderDetails?.orderId
+    ? `#ECOM-${String(orderDetails.orderId).slice(-8).toUpperCase()}`
+    : "#ECOM-CONFIRMED";
+
+  const formattedDate = new Date().toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
   return (
-    <div className="min-h-[90vh] flex items-center justify-center px-4 py-8">
+    <div className="min-h-[85vh] bg-gradient-to-b from-gray-50/70 to-white flex items-center justify-center py-12 px-4 sm:px-6">
       <Confetti
         width={window.innerWidth}
         height={window.innerHeight}
-        gravity={0.1}
-        numberOfPieces={300}
+        gravity={0.12}
+        numberOfPieces={250}
         recycle={false}
-        style={{ zIndex: 50 }}
+        style={{ zIndex: 50, pointerEvents: "none" }}
       />
 
-      <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100">
-        {/* HEADER */}
-        <div className="text-center px-8 py-4">
-          <div className="w-20 h-20 bg-green-50 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-2">
-            <CheckCircle className="w-10 h-10 text-green-500" />
+      <article className="w-full max-w-2xl bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden animate-fadeSlideUp">
+        {/* Header */}
+        <header className="px-6 sm:px-8 pt-8 pb-6 text-center border-b border-gray-100">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-600/15 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-7 h-7" aria-hidden="true" />
           </div>
 
-          <h1 className="text-green-500 text-3xl lg:text-4xl font-bold mb-3">
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-gray-900 tracking-tight">
             Order Confirmed!
           </h1>
-          <p className="text-green-500 text-lg opacity-90">
-            Thank you for your purchase. We're preparing your order.
+          <p className="text-sm sm:text-base text-gray-500 mt-1.5">
+            Thank you for shopping with EasyBuy. We&apos;re preparing your
+            order.
           </p>
-        </div>
+        </header>
 
-        {/* CONTENT */}
-        <div className="py-4">
-          {/* ORDER DETAILS */}
-          <div className="p-6 mb-8 md:px-16">
-            <div className="flex items-center gap-3 mb-4">
-              <Package className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-semibold text-gray-900">
+        {/* Body */}
+        <div className="p-6 sm:p-8 space-y-6">
+          {/* Order Details */}
+          <section aria-labelledby="order-summary-heading">
+            <div className="flex items-center gap-2 mb-3">
+              <Package className="w-4 h-4 text-blue-600" aria-hidden="true" />
+              <h2
+                id="order-summary-heading"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Order Details
               </h2>
             </div>
 
-            <div className="flex flex-col gap-4 text-sm">
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Order Number</span>
-                  <span className="font-semibold text-gray-900">
-                    #ECOM-
-                    {orderDetails?.orderId ||
-                      Math.random().toString(36).substring(2, 9).toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Order Date</span>
-                  <span className="font-semibold text-gray-900">
-                    {new Date().toLocaleDateString()}
-                  </span>
-                </div>
+            <dl className="rounded-xl bg-gray-50/80 border border-gray-100 p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-xs text-gray-500">Order Number</dt>
+                <dd className="font-mono font-semibold text-gray-900 mt-0.5">
+                  {formattedOrderId}
+                </dd>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Amount</span>
-                  <span className="font-semibold text-gray-900">
-                    {formatPriceInRupees(orderDetails?.totalAmount)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Payment Status</span>
-                  <span className="font-semibold text-green-600">Paid</span>
-                </div>
+              <div>
+                <dt className="text-xs text-gray-500">Order Date</dt>
+                <dd className="font-semibold text-gray-900 mt-0.5">
+                  {formattedDate}
+                </dd>
               </div>
-            </div>
-          </div>
 
-          {/* DELIVERY TIMELINE */}
-          <div className="p-6 mb-6 md:px-16 border-t-2 border-gray-200">
-            <div className="flex items-center gap-3 mb-4">
-              <Truck className="w-6 h-6 text-orange-600" />
-              <h2 className="text-xl font-semibold text-gray-900">
+              <div>
+                <dt className="text-xs text-gray-500">Total Paid</dt>
+                <dd className="font-bold text-gray-900 text-base tabular-nums mt-0.5">
+                  {formatPriceInRupees(orderDetails?.totalAmount || 0)}
+                </dd>
+              </div>
+
+              <div>
+                <dt className="text-xs text-gray-500">Payment Status</dt>
+                <dd className="mt-1">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                      aria-hidden="true"
+                    />
+                    Paid
+                  </span>
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          {/* Delivery Timeline */}
+          <section
+            aria-labelledby="timeline-heading"
+            className="pt-5 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <Truck className="w-4 h-4 text-amber-600" aria-hidden="true" />
+              <h2
+                id="timeline-heading"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Delivery Timeline
               </h2>
             </div>
 
-            <div className="flex justify-between items-center text-sm">
-              <TimelineItem
-                dotColor="bg-green-500"
-                title="Order Confirmed"
-                time="Just now"
-              />
-              <TimelineItem
-                dotColor="bg-blue-500"
-                title="Processing"
-                time="Within 24 hours"
-              />
-              <TimelineItem
-                dotColor="bg-gray-300"
-                title="Shipped"
-                time="1–2 business days"
-              />
-              <TimelineItem
-                dotColor="bg-gray-300"
-                title="Delivered"
-                time="3–5 business days"
-              />
-            </div>
-          </div>
+            <ol className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
+              {TIMELINE_STEPS.map((step) => (
+                <li
+                  key={step.title}
+                  className="flex sm:flex-col items-start gap-3 sm:gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className={`w-2.5 h-2.5 rounded-full mt-1.5 sm:mt-0 shrink-0 ${
+                      step.done
+                        ? "bg-emerald-500 ring-4 ring-emerald-50"
+                        : step.active
+                          ? "bg-blue-500 ring-4 ring-blue-50"
+                          : "bg-gray-300"
+                    }`}
+                  />
+                  <div>
+                    <p
+                      className={`font-semibold leading-snug ${
+                        step.active ? "text-gray-900" : "text-gray-500"
+                      }`}>
+                      {step.title}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{step.time}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
 
-          {/* NEXT STEPS */}
-          <div className="bg-blue-50 p-6 mb-8 md:px-16">
-            <div className="flex items-center gap-3 mb-3">
-              <Mail className="w-5 h-5 text-blue-600" />
-              <h3 className="font-semibold text-gray-900">What's Next?</h3>
-            </div>
-
-            <p className="text-sm text-gray-700">
-              We've sent an order confirmation to your email. You'll receive
-              shipping updates and tracking info as your order progresses.
+          {/* Next Steps */}
+          <section className="rounded-xl bg-blue-50/70 border border-blue-100 p-4 flex items-start gap-3">
+            <Mail
+              className="w-4 h-4 text-blue-600 shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
+            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+              We&apos;ve sent an order confirmation to your email. You&apos;ll
+              receive shipping updates and tracking details as your order
+              progresses.
             </p>
-          </div>
+          </section>
 
-          {/* ACTION BUTTONS */}
-          <div className="flex justify-center items-center gap-6">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Link
               to="/orders"
-              className="text-yellow-500 border-2 border-yellow-500 hover:bg-yellow-500 hover:text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3">
-              <Package className="hidden md:block w-5 h-5" />
-              View Order Details
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-blue-600 text-white text-sm font-semibold py-3 px-5 rounded-xl shadow-xs hover:shadow-md transition-all duration-200">
+              <Package className="w-4 h-4" aria-hidden="true" />
+              <span>View Order Details</span>
             </Link>
 
             <Link
               to="/"
-              className="text-blue-600 border-2 border-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-3">
-              <ArrowRight className="hidden md:block w-5 h-5" />
-              Continue Shopping
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 hover:border-gray-900 text-sm font-semibold py-3 px-5 rounded-xl transition-all duration-200">
+              <span>Continue Shopping</span>
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </Link>
           </div>
 
-          {/* AUTO REDIRECT NOTICE */}
+          {/* Auto Redirect Notice */}
           {isRedirecting && (
-            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-center">
-              <div className="flex items-center justify-center gap-3">
-                <Clock className="w-5 h-5 text-yellow-600 animate-pulse" />
-                <p className="text-sm text-yellow-800">
-                  Redirecting you to homepage in a few seconds...
-                </p>
-              </div>
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-center justify-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200/80 text-xs sm:text-sm text-amber-800">
+              <Clock
+                className="w-4 h-4 text-amber-600 animate-pulse shrink-0"
+                aria-hidden="true"
+              />
+              <span>Redirecting you to the homepage shortly...</span>
             </div>
           )}
         </div>
-      </div>
+      </article>
     </div>
   );
 };
-
-const TimelineItem = ({ dotColor, title, time }) => (
-  <div className="flex items-center gap-4">
-    <div className={`w-3 h-3 ${dotColor} rounded-full`} />
-    <div>
-      <p className="font-medium text-gray-900">{title}</p>
-      <p className="text-sm text-gray-600">{time}</p>
-    </div>
-  </div>
-);
 
 export default PurchaseSuccessPage;

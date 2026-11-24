@@ -9,7 +9,7 @@ import PublicLayout from "./layouts/PublicLayout";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 
-import LoadingSpinner, { ThreeDotsLoader } from "./components/LoadingSpinner";
+import { ThreeDotsLoader } from "./components/LoadingSpinner";
 import ScrollToTop from "./components/ScrollToTop";
 import { useCartStore } from "./stores/useCartStore";
 

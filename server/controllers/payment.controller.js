@@ -225,24 +225,45 @@ export const checkoutSuccess = async (req, res, next) => {
     });
 
     // Create the order only after successful payment.
-    const order = await Order.create({
-      user: req.user._id,
-      products: orderProducts,
-      address: address._id,
-      shippingAddress: {
-        fullName: address.fullName,
-        phone: address.phone,
-        addressLine: address.addressLine,
-        city: address.city,
-        state: address.state,
-        postalCode: address.postalCode,
-        country: address.country,
-      },
-      totalAmount: session.amount_total / 100,
-      paymentMethod: "card",
-      paymentStatus: "paid",
-      stripeSessionId: session.id,
-    });
+    let order;
+
+    try {
+      order = await Order.create({
+        user: req.user._id,
+        products: orderProducts,
+        address: address._id,
+        shippingAddress: {
+          fullName: address.fullName,
+          phone: address.phone,
+          addressLine: address.addressLine,
+          city: address.city,
+          state: address.state,
+          postalCode: address.postalCode,
+          country: address.country,
+        },
+        totalAmount: session.amount_total / 100,
+        paymentMethod: "card",
+        paymentStatus: "paid",
+        stripeSessionId: session.id,
+      });
+    } catch (error) {
+      if (error.code === 11000) {
+        const existingOrder = await Order.findOne({
+          stripeSessionId: session.id,
+        });
+
+        if (existingOrder) {
+          return res.status(200).json({
+            success: true,
+            message: "Order already processed",
+            orderId: existingOrder._id,
+            totalAmount: existingOrder.totalAmount,
+          });
+        }
+      }
+
+      throw error;
+    }
 
     // Copy each product image into the order_images folder.
     for (const item of order.products) {
@@ -274,8 +295,7 @@ export const checkoutSuccess = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message:
-        "Payment successful, order created, and coupon deactivated if used.",
+      message: "Payment successful and order created successfully.",
       orderId: order._id,
       totalAmount: order.totalAmount,
     });
