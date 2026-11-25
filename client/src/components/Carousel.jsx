@@ -1,5 +1,5 @@
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 const SLIDES = [
@@ -29,44 +29,71 @@ const SLIDES = [
   },
 ];
 
-export default function AutoCarousel() {
+const SLIDE_DURATION = 5000;
+const SWIPE_THRESHOLD = 50;
+
+export default function Carousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? SLIDES.length - 1 : prev - 1));
-  };
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
-  const handleNext = () => {
+  const goToNext = () => {
     setCurrentIndex((prev) => (prev + 1) % SLIDES.length);
   };
 
-  useEffect(() => {
-    const handleVisibility = () => {
-      setIsPaused(document.hidden);
-    };
+  const goToPrev = () => {
+    setCurrentIndex((prev) => (prev === 0 ? SLIDES.length - 1 : prev - 1));
+  };
 
+  // Pause when browser tab is hidden
+  useEffect(() => {
+    const handleVisibility = () => setIsPaused(document.hidden);
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
+    return () =>
       document.removeEventListener("visibilitychange", handleVisibility);
-    };
   }, []);
 
-  useEffect(() => {
-    if (isPaused) return;
+  // Touch swipe handlers (Flipkart-style)
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
+    setIsPaused(true);
+  };
 
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % SLIDES.length);
-    }, 5000);
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
 
-    return () => clearInterval(interval);
-  }, [isPaused]);
+  const handleTouchEnd = () => {
+    const distance = touchStartX.current - touchEndX.current;
+    if (distance > SWIPE_THRESHOLD) {
+      goToNext();
+    } else if (distance < -SWIPE_THRESHOLD) {
+      goToPrev();
+    }
+    setIsPaused(false);
+  };
+
+  // Keyboard support (Left / Right arrows)
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowRight") goToNext();
+    if (e.key === "ArrowLeft") goToPrev();
+  };
 
   return (
-    <div
-      className="group relative h-[38vh] sm:h-[48vh] xl:h-[72vh] rounded-2xl lg:rounded-3xl overflow-hidden mx-3 md:mx-8 mt-4 shadow-sm bg-gray-900"
+    <section
+      aria-roledescription="carousel"
+      aria-label="Featured Collections"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}>
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      className="relative h-[38vh] sm:h-[48vh] xl:h-[72vh] rounded-2xl lg:rounded-3xl overflow-hidden mx-3 md:mx-8 mt-4 shadow-sm bg-gray-900 select-none touch-pan-y focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
       {/* Slides Track */}
       <div
         className="flex h-full transition-transform duration-700 ease-out"
@@ -80,6 +107,7 @@ export default function AutoCarousel() {
               loading={index === 0 ? "eager" : "lazy"}
               fetchPriority={index === 0 ? "high" : "auto"}
               decoding={index === 0 ? "sync" : "async"}
+              draggable={false}
               className="w-full h-full object-cover"
               alt={slide.alt}
               width={1280}
@@ -90,7 +118,7 @@ export default function AutoCarousel() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
 
             {/* Slide Content */}
-            <div className="absolute inset-x-0 bottom-10 sm:bottom-14 px-6 sm:px-12 lg:px-16">
+            <div className="absolute inset-x-0 bottom-12 sm:bottom-16 px-6 sm:px-12 lg:px-16">
               <div
                 className={`max-w-xl transition-all duration-700 ${
                   index === currentIndex
@@ -118,43 +146,37 @@ export default function AutoCarousel() {
         ))}
       </div>
 
-      {/* Prev / Next Controls */}
-      <button
-        type="button"
-        onClick={handlePrevious}
-        aria-label="Previous Slide"
-        className="absolute left-3 md:left-5 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/90 text-white hover:text-gray-900 rounded-full p-2 sm:p-2.5 backdrop-blur-md transition-all duration-300 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100">
-        <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
-      </button>
-
-      <button
-        type="button"
-        onClick={handleNext}
-        aria-label="Next Slide"
-        className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/90 text-white hover:text-gray-900 rounded-full p-2 sm:p-2.5 backdrop-blur-md transition-all duration-300 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100">
-        <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
-      </button>
-
-      {/* Indicators (Inside Banner, 24px+ touch targets) */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center bg-black/25 backdrop-blur-md rounded-full px-2 py-0.5">
-        {SLIDES.map((slide, index) => (
-          <button
-            key={slide.name}
-            type="button"
-            onClick={() => setCurrentIndex(index)}
-            aria-label={`Go to slide ${index + 1}`}
-            aria-current={index === currentIndex ? "true" : undefined}
-            className="p-2 flex items-center justify-center">
-            <span
-              className={`block rounded-full transition-all duration-300 ${
-                index === currentIndex
-                  ? "bg-white w-6 h-1.5"
-                  : "bg-white/50 w-1.5 h-1.5 hover:bg-white/80"
-              }`}
-            />
-          </button>
-        ))}
+      {/* Progress Indicators */}
+      <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 flex items-center bg-black/30 backdrop-blur-md rounded-full px-2.5 py-1">
+        {SLIDES.map((slide, index) => {
+          const isActive = index === currentIndex;
+          return (
+            <button
+              key={slide.name}
+              type="button"
+              onClick={() => setCurrentIndex(index)}
+              aria-label={`Go to slide ${index + 1}: ${slide.title}`}
+              aria-current={isActive ? "true" : undefined}
+              className="p-2 flex items-center justify-center">
+              {isActive ? (
+                <span className="relative block w-8 sm:w-10 h-1.5 rounded-full bg-white/30 overflow-hidden">
+                  <span
+                    key={currentIndex}
+                    onAnimationEnd={goToNext}
+                    style={{
+                      animation: `carouselProgress ${SLIDE_DURATION}ms linear forwards`,
+                      animationPlayState: isPaused ? "paused" : "running",
+                    }}
+                    className="absolute inset-0 bg-white rounded-full origin-left"
+                  />
+                </span>
+              ) : (
+                <span className="block w-1.5 h-1.5 rounded-full bg-white/50 hover:bg-white/80 transition-colors" />
+              )}
+            </button>
+          );
+        })}
       </div>
-    </div>
+    </section>
   );
 }

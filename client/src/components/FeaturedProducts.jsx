@@ -1,12 +1,17 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCartStore } from "../stores/useCartStore";
 import ProductCard from "./ProductCard";
 
+const SWIPE_THRESHOLD = 50;
+
 const FeaturedProducts = ({ featuredProducts = [] }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(4);
   const { isInCart } = useCartStore();
+
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -20,28 +25,61 @@ const FeaturedProducts = ({ featuredProducts = [] }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const maxIndex = Math.max(0, featuredProducts.length - itemsPerPage);
-  const totalPages = Math.ceil(featuredProducts.length / itemsPerPage);
-  const activePage = Math.ceil(currentIndex / itemsPerPage);
+  // Group products into pages for smooth sliding
+  const pages = useMemo(() => {
+    const chunks = [];
+    for (let i = 0; i < featuredProducts.length; i += itemsPerPage) {
+      chunks.push(featuredProducts.slice(i, i + itemsPerPage));
+    }
+    return chunks;
+  }, [featuredProducts, itemsPerPage]);
 
-  const nextSlide = () => {
-    setCurrentIndex((prev) => Math.min(prev + itemsPerPage, maxIndex));
-  };
+  const totalPages = pages.length;
+  const activePage = Math.min(currentPage, Math.max(0, totalPages - 1));
+
+  const isStartDisabled = activePage === 0;
+  const isEndDisabled = activePage >= totalPages - 1;
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => Math.max(prev - itemsPerPage, 0));
+    setCurrentPage((prev) => Math.max(prev - 1, 0));
   };
 
-  const isStartDisabled = currentIndex === 0;
-  const isEndDisabled = currentIndex >= maxIndex;
+  const nextSlide = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
+  };
 
-  const visibleProducts = featuredProducts.slice(
-    currentIndex,
-    currentIndex + itemsPerPage,
-  );
+  // Touch swipe handlers
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const distance = touchStartX.current - touchEndX.current;
+    if (distance > SWIPE_THRESHOLD && !isEndDisabled) {
+      nextSlide();
+    } else if (distance < -SWIPE_THRESHOLD && !isStartDisabled) {
+      prevSlide();
+    }
+  };
+
+  // Keyboard support
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowRight" && !isEndDisabled) nextSlide();
+    if (e.key === "ArrowLeft" && !isStartDisabled) prevSlide();
+  };
+
+  if (featuredProducts.length === 0) return null;
 
   return (
-    <section aria-labelledby="featured-heading" className="py-10 lg:py-16">
+    <section
+      aria-labelledby="featured-heading"
+      aria-roledescription="carousel"
+      className="py-10 lg:py-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 lg:mb-10">
         <div>
@@ -58,9 +96,9 @@ const FeaturedProducts = ({ featuredProducts = [] }) => {
           </p>
         </div>
 
-        {/* Desktop Carousel Controls */}
-        {featuredProducts.length > itemsPerPage && (
-          <div className="flex items-center gap-2 self-end">
+        {/* Laptop / Desktop Controls */}
+        {totalPages > 1 && (
+          <div className="hidden sm:flex items-center gap-2 self-end">
             <button
               type="button"
               onClick={prevSlide}
@@ -90,27 +128,43 @@ const FeaturedProducts = ({ featuredProducts = [] }) => {
         )}
       </div>
 
-      {/* Products Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
-        {visibleProducts.map((product) => (
-          <ProductCard
-            key={product._id}
-            product={product}
-            inCart={isInCart(product._id)}
-          />
-        ))}
+      {/* Swipeable Sliding Track */}
+      <div
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="overflow-hidden touch-pan-y select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-2xl">
+        <div
+          className="flex transition-transform duration-500 ease-out"
+          style={{ transform: `translateX(-${activePage * 100}%)` }}>
+          {pages.map((pageItems, pageIndex) => (
+            <div
+              key={pageIndex}
+              className="w-full shrink-0 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
+              {pageItems.map((product) => (
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                  inCart={isInCart(product._id)}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Pagination Indicators (24px+ accessible touch targets) */}
+      {/* Pagination Indicators */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center mt-8">
-          {Array.from({ length: totalPages }).map((_, index) => (
+          {pages.map((_, index) => (
             <button
               key={index}
               type="button"
               aria-label={`View featured products page ${index + 1}`}
               aria-current={index === activePage ? "true" : undefined}
-              onClick={() => setCurrentIndex(index * itemsPerPage)}
+              onClick={() => setCurrentPage(index)}
               className="p-2 flex items-center justify-center">
               <span
                 className={`block rounded-full transition-all duration-300 ${

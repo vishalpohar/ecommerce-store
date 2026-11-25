@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import CategoryItem from "../components/CategoryItem";
 import FeaturedProducts from "../components/FeaturedProducts";
 import { useProductStore } from "../stores/useProductStore";
-import AutoCarousel from "../components/AutoCarousel";
+import Carousel from "../components/Carousel";
 import SkeletonLoader from "../components/SkeletonLoader";
 
 const HIGHLIGHTS = [
@@ -39,7 +39,7 @@ const HomePage = () => {
     <div className="min-h-[90vh] bg-gradient-to-b from-gray-50/80 via-white to-white">
       {/* Hero Carousel */}
       <section aria-label="Featured promotions">
-        <AutoCarousel />
+        <Carousel />
       </section>
 
       {/* Main Content */}
