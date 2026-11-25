@@ -36,9 +36,22 @@ const CheckoutItems = ({ products = [] }) => {
                 {product.name}
               </h3>
 
-              <p className="text-sm text-gray-500 mt-2">
-                Quantity: {product.quantity}
-              </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 mt-2">
+                <span>Quantity: {product.quantity}</span>
+                {product.size && product.size !== "One Size" && (
+                  <>
+                    <span className="text-gray-300" aria-hidden="true">
+                      •
+                    </span>
+                    <span>
+                      Size:{" "}
+                      <strong className="font-medium text-gray-800">
+                        {product.size}
+                      </strong>
+                    </span>
+                  </>
+                )}
+              </div>
 
               <p className="text-sm text-gray-500 mt-1">
                 Unit Price: {formatPriceInRupees(product.price)}

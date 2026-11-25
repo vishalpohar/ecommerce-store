@@ -7,15 +7,27 @@ export const getCartProducts = async (req, res, next) => {
   try {
     const cartItems = req.user.cartItems;
 
+    if (!cartItems.length) return res.json([]);
+
     const products = await Product.find({
       _id: { $in: cartItems.map((item) => item.product) },
     });
 
     const formattedCart = products.map((product) => {
       const item = cartItems.find(
-        (item) => item.product.toString() === product._id.toString(),
+        (i) => i.product.toString() === product._id.toString(),
       );
-      return { ...product.toJSON(), quantity: item.quantity };
+
+      const validSize =
+        item.size && product.sizes?.includes(item.size)
+          ? item.size
+          : product.sizes?.[0] || "One Size";
+
+      return {
+        ...product.toJSON(),
+        quantity: item.quantity,
+        size: item.size || "One Size",
+      };
     });
 
     res.json(formattedCart);
@@ -26,7 +38,7 @@ export const getCartProducts = async (req, res, next) => {
 
 export const addToCart = async (req, res, next) => {
   try {
-    const { productId } = req.body;
+    const { productId, size = "One Size", quantity = 1 } = req.body;
     const userId = req.user._id;
 
     if (!mongoose.isValidObjectId(productId)) {
@@ -39,26 +51,20 @@ export const addToCart = async (req, res, next) => {
       return next(new ApiError(404, "Product not found"));
     }
 
-    // Increment the quantity if product already exists
-    const incrementResult = await User.updateOne(
+    // If product is already in cart, update its size and increment quantity
+    const updateResult = await User.updateOne(
       { _id: userId, "cartItems.product": productId },
-      { $inc: { "cartItems.$.quantity": 1 } },
+      {
+        $inc: { "cartItems.$.quantity": quantity },
+        $set: { "cartItems.$.size": size },
+      },
     );
 
-    if (incrementResult.matchedCount === 0) {
-      // Otherwise, add a new product
-      const pushResult = await User.updateOne(
+    if (updateResult.matchedCount === 0) {
+      await User.updateOne(
         { _id: userId, "cartItems.product": { $ne: productId } },
-        { $push: { cartItems: { product: productId, quantity: 1 } } },
+        { $push: { cartItems: { product: productId, size, quantity } } },
       );
-
-      // Handle another request adding the same product concurrently
-      if (pushResult.matchedCount === 0) {
-        await User.updateOne(
-          { _id: userId, "cartItems.product": productId },
-          { $inc: { "cartItems.$.quantity": 1 } },
-        );
-      }
     }
 
     const user = await User.findById(userId).select("cartItems");
@@ -77,9 +83,11 @@ export const removeProductFromCart = async (req, res, next) => {
       return next(new ApiError(400, "Product ID is required"));
     }
 
-    const user = await User.findOneAndUpdate({_id: req.user._id, "cartItems.product": productId}, {$pull: {cartItems: {product: productId},},},{
-      new: true,
-    }).select("cartItems");
+    const user = await User.findOneAndUpdate(
+      { _id: req.user._id, "cartItems.product": productId },
+      { $pull: { cartItems: { product: productId } } },
+      { new: true },
+    ).select("cartItems");
 
     if (!user) {
       return next(new ApiError(404, "Product not found in cart"));
@@ -109,7 +117,7 @@ export const clearCart = async (req, res, next) => {
 export const updateQuantity = async (req, res, next) => {
   try {
     const { id: productId } = req.params;
-    const { quantity } = req.body;
+    const { quantity, size } = req.body;
 
     if (!Number.isInteger(quantity) || quantity < 0) {
       return next(new ApiError(400, "Invalid quantity"));
@@ -128,16 +136,14 @@ export const updateQuantity = async (req, res, next) => {
         { new: true },
       ).select("cartItems");
     } else {
+      const updateFields = { "cartItems.$[item].quantity": quantity };
+      if (size) {
+        updateFields["cartItems.$[item].size"] = size;
+      }
+
       user = await User.findOneAndUpdate(
-        {
-          _id: req.user._id,
-          "cartItems.product": productId,
-        },
-        {
-          $set: {
-            "cartItems.$[item].quantity": quantity,
-          },
-        },
+        { _id: req.user._id, "cartItems.product": productId },
+        { $set: updateFields },
         { new: true, arrayFilters: [{ "item.product": productId }] },
       ).select("cartItems");
     }

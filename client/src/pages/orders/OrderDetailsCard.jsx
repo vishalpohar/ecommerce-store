@@ -119,11 +119,19 @@ const OrderDetailsCard = ({ order, onViewDetails, onTrackOrder }) => {
                   <h4 className="font-medium text-gray-900 text-sm line-clamp-2 group-hover:text-blue-600 transition-colors">
                     {product.name}
                   </h4>
-                  <div className="flex items-center justify-between mt-1.5 text-xs">
-                    <span className="text-gray-500">
-                      Qty: {product.quantity}
-                    </span>
-                    <span className="font-semibold text-gray-900">
+                  <div className="flex items-center justify-between gap-2 mt-1.5 text-xs">
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <span>Qty: {product.quantity}</span>
+                      {product.size && product.size !== "One Size" && (
+                        <>
+                          <span className="text-gray-300" aria-hidden="true">
+                            •
+                          </span>
+                          <span>Size: {product.size}</span>
+                        </>
+                      )}
+                    </div>
+                    <span className="font-semibold text-gray-900 tabular-nums">
                       {formatPriceInRupees(product.itemTotal)}
                     </span>
                   </div>

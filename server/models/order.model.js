@@ -18,7 +18,6 @@ const orderSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
-
         image: {
           type: String,
         },
@@ -35,6 +34,10 @@ const orderSchema = new mongoose.Schema(
           type: Number,
           required: true,
           min: 1,
+        },
+        size: {
+          type: String,
+          default: "One Size",
         },
         price: {
           type: Number,

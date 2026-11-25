@@ -11,6 +11,7 @@ import {
   Truck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
@@ -19,6 +20,7 @@ import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
 import { useWishlistStore } from "../stores/useWishlistStore";
 import { formatPriceInRupees } from "../utils/formatCurrency";
+import { hasMultipleSizes } from "../utils/sizeOptions";
 
 const getOptimizedImage = (url, width = 900) => {
   if (!url || !url.includes("/upload/")) return url;
@@ -77,31 +79,79 @@ const ProductDetailsPage = () => {
 
   const { user } = useUserStore();
   const { fetchProductById, product, isFetchingProduct } = useProductStore();
-  const { addToCart, isInCart } = useCartStore();
+  const { cart, addToCart, updateSize, isInCart } = useCartStore();
   const { addToWishlist, removeFromWishlist, isInWishlist } =
     useWishlistStore();
 
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [sizeError, setSizeError] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const inCart = isInCart(productId);
+  const cartItem = cart.find((item) => item._id === productId);
   const inWishlist = isInWishlist(productId);
+
+  const isLoading = isFetchingProduct || !product || product._id !== productId;
+  const showSizeSelector = !isLoading && hasMultipleSizes(product.sizes);
 
   useEffect(() => {
     if (productId) {
       setQuantity(1);
+      setSelectedSize("");
+      setSizeError(false);
       setIsExpanded(false);
       fetchProductById(productId);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [productId, fetchProductById]);
 
+  // Sync default size once product loads
+  useEffect(() => {
+    if (!product || product._id !== productId) return;
+
+    if (!hasMultipleSizes(product.sizes)) {
+      setSelectedSize(product.sizes?.[0] || "One Size");
+    } else if (cartItem?.size) {
+      setSelectedSize(cartItem.size);
+    } else {
+      setSelectedSize("");
+    }
+    setSizeError(false);
+  }, [product, productId, cartItem?.size]);
+
+  const validateSize = () => {
+    if (showSizeSelector && !selectedSize) {
+      setSizeError(true);
+      toast.error("Please select a size");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSizeSelect = (size) => {
+    setSelectedSize(size);
+    setSizeError(false);
+  };
+
   const handleAddToCart = () => {
     if (!user) {
       navigate("/login");
       return;
     }
-    addToCart({ ...product, quantity });
+    if (!validateSize()) return;
+
+    addToCart({
+      ...product,
+      quantity,
+      size: selectedSize || "One Size",
+    });
+  };
+
+  const handleUpdateCartSize = async () => {
+    if (!validateSize()) return;
+    await updateSize(product._id, selectedSize);
+    toast.success(`Updated size to ${selectedSize}`);
   };
 
   const handleWishlist = () => {
@@ -121,16 +171,23 @@ const ProductDetailsPage = () => {
       navigate("/login");
       return;
     }
+    if (!validateSize()) return;
+
     navigate("/checkout", {
       state: {
         source: "buy-now",
         productId: product._id,
         quantity,
+        size: selectedSize || "One Size",
       },
     });
   };
 
-  const isLoading = isFetchingProduct || !product || product._id !== productId;
+  const hasChangedCartSize =
+    inCart &&
+    showSizeSelector &&
+    selectedSize &&
+    selectedSize !== cartItem?.size;
 
   const originalPrice = product ? Math.round(product.price * 1.2) : 0;
   const hash = product?._id ? parseInt(product._id.slice(-6), 16) || 0 : 0;
@@ -290,6 +347,55 @@ const ProductDetailsPage = () => {
                   </p>
                 </div>
 
+                {/* Size Selector */}
+                {showSizeSelector && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-sm font-medium text-gray-700">
+                        Select Size
+                        {selectedSize && (
+                          <span className="ml-2 font-semibold text-gray-900">
+                            {selectedSize}
+                          </span>
+                        )}
+                      </span>
+                      {sizeError && (
+                        <span
+                          role="alert"
+                          className="text-xs font-medium text-red-600">
+                          Please choose a size
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      role="radiogroup"
+                      aria-label="Product size"
+                      className="flex flex-wrap gap-2.5">
+                      {product.sizes.map((size) => {
+                        const isSelected = selectedSize === size;
+                        return (
+                          <button
+                            key={size}
+                            type="button"
+                            role="radio"
+                            aria-checked={isSelected}
+                            onClick={() => handleSizeSelect(size)}
+                            className={`min-w-12 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all duration-150 ${
+                              isSelected
+                                ? "bg-gray-900 text-white border-gray-900 shadow-xs"
+                                : sizeError
+                                  ? "bg-white text-gray-800 border-red-300 hover:border-gray-900"
+                                  : "bg-white text-gray-800 border-gray-200 hover:border-gray-900"
+                            }`}>
+                            {size}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Quantity Selector */}
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-medium text-gray-700">
@@ -322,7 +428,15 @@ const ProductDetailsPage = () => {
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-1">
-                  {inCart ? (
+                  {hasChangedCartSize ? (
+                    <button
+                      type="button"
+                      onClick={handleUpdateCartSize}
+                      className="flex-1 inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-blue-600 text-white text-sm sm:text-base font-semibold py-3.5 px-6 rounded-xl shadow-xs hover:shadow-md transition-all duration-200">
+                      <Handbag className="w-4 h-4" aria-hidden="true" />
+                      <span>Update Size in Bag</span>
+                    </button>
+                  ) : inCart ? (
                     <button
                       type="button"
                       onClick={() => navigate("/cart")}

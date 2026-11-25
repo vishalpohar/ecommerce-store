@@ -6,6 +6,14 @@ import Product from "../models/product.model.js";
 import logger from "../utils/logger.js";
 import ApiError from "../utils/ApiError.js";
 
+const normalizeSizes = (sizes) => {
+  if (!Array.isArray(sizes)) return ["One Size"];
+  const cleaned = [
+    ...new Set(sizes.map((s) => String(s).trim()).filter(Boolean)),
+  ];
+  return cleaned.length > 0 ? cleaned : ["One Size"];
+};
+
 export const getSellerProducts = async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.query;
@@ -43,7 +51,7 @@ export const getProductById = async (req, res, next) => {
 export const createProduct = async (req, res, next) => {
   let cloudinaryResponse = null;
   try {
-    const { name, description, price, image, category } = req.body;
+    const { name, description, price, image, category, sizes } = req.body;
 
     if (image) {
       cloudinaryResponse = await cloudinary.uploader.upload(image, {
@@ -60,6 +68,7 @@ export const createProduct = async (req, res, next) => {
       image: cloudinaryResponse?.secure_url ?? "",
       imagePublicId: cloudinaryResponse?.public_id ?? null,
       category,
+      sizes: normalizeSizes(sizes),
       seller: req.user._id,
     });
 
@@ -89,7 +98,7 @@ export const updateProduct = async (req, res, next) => {
       return next(new ApiError(400, "Invalid product ID"));
     }
 
-    const { name, description, price, category, image } = req.body;
+    const { name, description, price, category, image, sizes } = req.body;
 
     // Find product belonging to the authenticated seller.
     const product = await Product.findOne({
@@ -108,10 +117,18 @@ export const updateProduct = async (req, res, next) => {
       "price",
       "category",
       "image",
+      "sizes",
     ].some((field) => Object.prototype.hasOwnProperty.call(req.body, field));
 
     if (!hasChanges) {
       return next(new ApiError(400, "No product details provided"));
+    }
+
+    if (sizes !== undefined) {
+      if (!Array.isArray(sizes) || sizes.length === 0) {
+        return next(new ApiError(400, "At least one size must be selected"));
+      }
+      product.sizes = normalizeSizes(sizes);
     }
 
     // Update only the permitted fields.
@@ -242,6 +259,7 @@ export const getRecommendedProducts = async (req, res, next) => {
           name: 1,
           image: 1,
           price: 1,
+          sizes: 1
         },
       },
     ]);
@@ -277,6 +295,7 @@ export const getSearchedProducts = async (req, res, next) => {
       name: 1,
       image: 1,
       price: 1,
+      sizes: 1
     })
       .sort(sortOption)
       .skip((page - 1) * limit)
@@ -334,7 +353,7 @@ export const getProductsByCategory = async (req, res, next) => {
   try {
     const products = await Product.find(
       { category },
-      { _id: 1, name: 1, image: 1, price: 1 },
+      { _id: 1, name: 1, image: 1, price: 1, sizes: 1 },
     )
       .sort(sortOption)
       .skip((page - 1) * limit)
@@ -359,7 +378,7 @@ export const getFeaturedProducts = async (req, res, next) => {
     // if not in redis, fetch from mongodb
     featuredProducts = await Product.find(
       { isFeatured: true },
-      { _id: 1, name: 1, image: 1, price: 1, isFeatured: 1, category: 1 },
+      { _id: 1, name: 1, image: 1, price: 1, isFeatured: 1, category: 1, sizes: 1 },
     ).lean();
 
     if (!featuredProducts) {

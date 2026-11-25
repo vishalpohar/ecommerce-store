@@ -24,6 +24,7 @@ const CheckoutPage = () => {
   const isBuyNow = location.state?.source === "buy-now";
   const productId = location.state?.productId;
   const quantity = location.state?.quantity || 1;
+  const size = location.state?.size || "One Size";
 
   const {
     cart,
@@ -49,10 +50,10 @@ const CheckoutPage = () => {
   const checkoutProducts = useMemo(() => {
     if (isBuyNow) {
       if (!product || product._id !== productId) return [];
-      return [{ ...product, quantity }];
+      return [{ ...product, quantity, size }];
     }
     return cart;
-  }, [isBuyNow, product, productId, quantity, cart]);
+  }, [isBuyNow, product, productId, quantity, size, cart]);
 
   const orderTotals = useMemo(() => {
     const subtotal = checkoutProducts.reduce(

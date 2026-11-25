@@ -49,6 +49,7 @@ export const createCheckoutSession = async (req, res, next) => {
     const orderProducts = products.map((item) => {
       const product = productMap.get(item._id.toString());
       const quantity = Number(item.quantity);
+      const size = item.size || "One Size";
 
       if (!Number.isSafeInteger(quantity) || quantity < 1) {
         throw new ApiError(400, "Invalid product quantity");
@@ -65,6 +66,7 @@ export const createCheckoutSession = async (req, res, next) => {
         imagePublicId: null,
         seller: product.seller,
         quantity,
+        size,
         price: product.price,
         itemTotal: product.price * quantity,
       };
@@ -81,7 +83,10 @@ export const createCheckoutSession = async (req, res, next) => {
         price_data: {
           currency: "inr",
           product_data: {
-            name: product.name,
+            name:
+              product.size && product.size !== "One Size"
+                ? `${product.name} (Size: ${product.size})`
+                : product.name,
             images: [product.image],
           },
           unit_amount: amount,
@@ -108,9 +113,10 @@ export const createCheckoutSession = async (req, res, next) => {
     }
 
     const productsMetadata = JSON.stringify(
-      orderProducts.map(({ product, quantity }) => ({
-        product: product.toString(),
-        quantity,
+      orderProducts.map(({ product, quantity, size }) => ({
+        p: product.toString(),
+        q: quantity,
+        s: size,
       })),
     );
 
@@ -191,7 +197,7 @@ export const checkoutSuccess = async (req, res, next) => {
     // Retrieve products from MongoDB.
     const requestedProducts = JSON.parse(session.metadata.products);
 
-    const productIds = requestedProducts.map((item) => item.product);
+    const productIds = requestedProducts.map((item) => item.p);
 
     const dbProducts = await Product.find({
       _id: { $in: productIds },
@@ -206,7 +212,7 @@ export const checkoutSuccess = async (req, res, next) => {
     );
 
     const orderProducts = requestedProducts.map((item) => {
-      const product = productMap.get(item.product);
+      const product = productMap.get(item.p);
 
       if (!product) {
         throw new ApiError(404, "Product not found");
@@ -218,9 +224,10 @@ export const checkoutSuccess = async (req, res, next) => {
         image: product.image,
         imagePublicId: null,
         seller: product.seller,
-        quantity: item.quantity,
+        quantity: item.q,
+        size: item.s || "One Size",
         price: product.price,
-        itemTotal: product.price * item.quantity,
+        itemTotal: product.price * item.q,
       };
     });
 

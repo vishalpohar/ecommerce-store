@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 
 import { useAIStore } from "../stores/useAIStore";
 import { useProductStore } from "../stores/useProductStore";
+import { getSizeOptionsForCategory } from "../utils/sizeOptions";
 
 const CATEGORIES = [
   "pants",
@@ -21,6 +22,7 @@ const INITIAL_STATE = {
   description: "",
   price: "",
   category: "",
+  sizes: [],
   image: "",
 };
 
@@ -32,9 +34,39 @@ const AddProductForm = () => {
   const { createProduct, loading } = useProductStore();
   const { getDescription, generating } = useAIStore();
 
+  const availableSizes = newProduct.category
+    ? getSizeOptionsForCategory(newProduct.category)
+    : [];
+
+  const isOneSizeOnly =
+    availableSizes.length === 1 && availableSizes[0] === "One Size";
+
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === "category") {
+      const defaultSizes = value ? getSizeOptionsForCategory(value) : [];
+      setNewProduct((prev) => ({
+        ...prev,
+        category: value,
+        sizes: defaultSizes,
+      }));
+      return;
+    }
+
     setNewProduct((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const toggleSize = (size) => {
+    setNewProduct((prev) => {
+      const exists = prev.sizes.includes(size);
+      return {
+        ...prev,
+        sizes: exists
+          ? prev.sizes.filter((s) => s !== size)
+          : [...prev.sizes, size],
+      };
+    });
   };
 
   const generateDescription = async () => {
@@ -76,6 +108,12 @@ const AddProductForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (newProduct.sizes.length === 0) {
+      toast.error("Please select at least one available size");
+      return;
+    }
+
     try {
       await createProduct(newProduct);
       setNewProduct(INITIAL_STATE);
@@ -167,6 +205,51 @@ const AddProductForm = () => {
           />
         </div>
       </div>
+
+      {/* Row 2.5: Available Sizes */}
+      {newProduct.category && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="block text-sm font-medium text-gray-700">
+              Available Sizes <span className="text-red-500">*</span>
+            </span>
+            {!isOneSizeOnly && (
+              <span className="text-xs text-gray-500">
+                {newProduct.sizes.length} selected
+              </span>
+            )}
+          </div>
+
+          {isOneSizeOnly ? (
+            <span className="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+              One Size
+            </span>
+          ) : (
+            <div
+              role="group"
+              aria-label="Select available sizes"
+              className="flex flex-wrap gap-2">
+              {availableSizes.map((size) => {
+                const isSelected = newProduct.sizes.includes(size);
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => toggleSize(size)}
+                    aria-pressed={isSelected}
+                    className={`min-w-12 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all duration-150 ${
+                      isSelected
+                        ? "bg-gray-900 text-white border-gray-900 shadow-2xs"
+                        : "bg-gray-50/70 text-gray-700 border-gray-200 hover:border-gray-400 hover:bg-white"
+                    }`}>
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Row 3: Description + AI Generator */}
       <div>
@@ -277,7 +360,9 @@ const AddProductForm = () => {
       <div className="pt-2">
         <button
           type="submit"
-          disabled={loading || !newProduct.image}
+          disabled={
+            loading || !newProduct.image || newProduct.sizes.length === 0
+          }
           className="w-full sm:w-auto sm:min-w-48 inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-blue-600 text-white text-sm sm:text-base font-semibold py-3 px-6 rounded-xl shadow-xs hover:shadow-md transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed">
           {loading ? (
             <>

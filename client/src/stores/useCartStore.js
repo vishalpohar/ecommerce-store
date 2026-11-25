@@ -46,7 +46,6 @@ export const useCartStore = create((set, get) => ({
 
   getCartItems: async () => {
     const { isFetchingCart } = get();
-
     if (isFetchingCart) return;
 
     set({ isFetchingCart: true });
@@ -71,13 +70,16 @@ export const useCartStore = create((set, get) => ({
       await axios.delete(`/cart`);
       set({ cart: [], coupon: null, total: 0, subtotal: 0 });
     } catch (error) {
-      toast.error(error.response.data.message || "An error occurred");
+      toast.error(error.response?.data?.message || "An error occurred");
     }
   },
 
   addToCart: async (product) => {
+    const size = product.size || product.sizes?.[0] || "One Size";
+    const quantity = product.quantity || 1;
+
     try {
-      const response = await axios.post("/cart", { productId: product._id });
+      await axios.post("/cart", { productId: product._id, size, quantity });
       toast.success("Product added to cart");
 
       set((prevState) => {
@@ -87,10 +89,10 @@ export const useCartStore = create((set, get) => ({
         const newCart = existingItem
           ? prevState.cart.map((item) =>
               item._id === product._id
-                ? { ...item, quantity: item.quantity + 1 }
+                ? { ...item, quantity: item.quantity + quantity, size }
                 : item,
             )
-          : [...prevState.cart, { ...product, quantity: 1 }];
+          : [...prevState.cart, { ...product, size, quantity }];
         return { cart: newCart };
       });
       get().calculateTotals();
@@ -107,29 +109,42 @@ export const useCartStore = create((set, get) => ({
       }));
       get().calculateTotals();
     } catch (error) {
-      toast.error(error.response.data.message || "An error occurred");
+      toast.error(error.response?.data?.message || "An error occurred");
     }
   },
 
-  updateQuantity: async (productId, quantity) => {
+  updateQuantity: async (productId, quantity, size) => {
     try {
       if (quantity === 0) {
         get().removeFromCart(productId);
         return;
       }
 
-      await axios.put(`/cart/${productId}`, { quantity });
+      const payload = size ? { quantity, size } : { quantity };
+      await axios.put(`/cart/${productId}`, payload);
+
       set((prevState) => ({
         cart: prevState.cart.map((item) =>
-          item._id === productId ? { ...item, quantity } : item,
+          item._id === productId
+            ? { ...item, quantity, ...(size ? { size } : {}) }
+            : item,
         ),
       }));
       get().calculateTotals();
-    } catch (error) {}
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update cart");
+    }
+  },
+
+  updateSize: async (productId, size) => {
+    const item = get().cart.find((i) => i._id === productId);
+    if (!item || item.size === size) return;
+
+    await get().updateQuantity(productId, item.quantity, size);
   },
 
   calculateTotals: () => {
-    const { cart, coupon, isCouponApplied } = get();
+    const { cart, coupon } = get();
     let subtotal = cart.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,

@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema(
           ref: "Product",
           required: true,
         },
+        size: {
+          type: String,
+          default: "One Size",
+        },
         quantity: {
           type: Number,
           default: 1,
